@@ -18,7 +18,9 @@ import {
   Bike as BikeIcon,
   Sparkles,
   RefreshCw,
-  BarChart3
+  BarChart3,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { calculateFinancialSummary, formatCurrency, formatDate } from '../utils/formatters';
 import { MonthlySummarySection } from './MonthlySummarySection';
@@ -35,7 +37,8 @@ export const DashboardView: React.FC = () => {
     openSaleModalForBike,
     openInvoiceForSale,
     openDetailModalForBike,
-    resetToDefaultData
+    resetToDefaultData,
+    updateSettings
   } = useDealership();
 
   const soldBikes = bikes
@@ -122,10 +125,26 @@ export const DashboardView: React.FC = () => {
               <BarChart3 className="w-4 h-4 text-sky-400" aria-hidden="true" />
               <span>Monthly Summary</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => void updateSettings({
+                hideDashboardPriceCards: !settings.hideDashboardPriceCards
+              }).catch(() => undefined)}
+              aria-pressed={settings.hideDashboardPriceCards}
+              aria-label={settings.hideDashboardPriceCards ? 'Show price cards' : 'Hide price cards'}
+              className="flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-xl bg-slate-800/90 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-700 font-bold text-xs sm:text-sm transition-all flex-1 sm:flex-initial"
+            >
+              {settings.hideDashboardPriceCards
+                ? <Eye className="w-4 h-4 text-sky-400" aria-hidden="true" />
+                : <EyeOff className="w-4 h-4 text-sky-400" aria-hidden="true" />}
+              <span>{settings.hideDashboardPriceCards ? 'Show Price Cards' : 'Hide Price Cards'}</span>
+            </button>
           </div>
         </div>
 
         {/* Highlight ticker with responsive wrapping */}
+        {!settings.hideDashboardPriceCards && (
         <div className="mt-5 pt-4 border-t border-slate-800/80 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl border border-slate-800/60">
             <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Showroom Inventory Cost</div>
@@ -157,10 +176,43 @@ export const DashboardView: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
       </div>
 
+      {!settings.hideDashboardPriceCards && (
+      <section className="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 sm:p-5 shadow-xl" aria-labelledby="business-capital-title">
+        <div className="mb-4">
+          <h2 id="business-capital-title" className="text-sm font-black text-white uppercase tracking-wider">Business Capital</h2>
+          <p className="text-xs text-slate-400 mt-1">Available capital returns the purchase price when a vehicle sells and includes realized net profit.</p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Starting Capital</div>
+            <div className="mt-1 text-sm sm:text-base font-black text-white font-mono break-words">{formatCurrency(summary.startingCapital, symbol)}</div>
+          </div>
+          <div className="rounded-xl bg-slate-950/70 border border-emerald-500/30 p-3">
+            <div className="text-[11px] text-emerald-300 font-semibold uppercase tracking-wider">Available Capital</div>
+            <div className={`mt-1 text-sm sm:text-base font-black font-mono break-words ${summary.currentAvailableCapital >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {formatCurrency(summary.currentAvailableCapital, symbol)}
+            </div>
+          </div>
+          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Total Vehicle Purchase Costs</div>
+            <div className="mt-1 text-sm sm:text-base font-black text-orange-300 font-mono break-words">{formatCurrency(summary.totalPurchaseCost, symbol)}</div>
+            <div className="text-[10px] text-slate-500 mt-1">Lifetime purchases, before sale returns</div>
+          </div>
+          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Total Realized Profits</div>
+            <div className={`mt-1 text-sm sm:text-base font-black font-mono break-words ${summary.totalRealizedProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {formatCurrency(summary.totalRealizedProfit, symbol)}
+            </div>
+          </div>
+        </div>
+      </section>
+      )}
+
       {/* Main KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${settings.hideDashboardPriceCards ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-3.5 sm:gap-5`}>
         
         {/* Total In Stock */}
         <div 
@@ -187,9 +239,11 @@ export const DashboardView: React.FC = () => {
                 <span className="text-xs text-slate-400 font-medium">units available</span>
               </div>
             </div>
-            <div className="mt-auto pt-2.5 border-t border-slate-800/80 text-xs text-slate-400 font-mono min-h-[30px] flex items-center">
-              Asset Value: {formatCurrency(summary.totalInventoryCost, symbol)}
-            </div>
+            {!settings.hideDashboardPriceCards && (
+              <div className="mt-auto pt-2.5 border-t border-slate-800/80 text-xs text-slate-400 font-mono min-h-[30px] flex items-center">
+                Asset Value: {formatCurrency(summary.totalInventoryCost, symbol)}
+              </div>
+            )}
           </div>
         </div>
 
@@ -224,6 +278,8 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
 
+        {!settings.hideDashboardPriceCards && (
+        <>
         {/* Current In-Stock Inventory Cost */}
         <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 flex flex-col justify-between h-full">
           <div className="flex items-center justify-between h-11 shrink-0">
@@ -273,6 +329,8 @@ export const DashboardView: React.FC = () => {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
 
       {isAdmin && (
@@ -325,7 +383,7 @@ export const DashboardView: React.FC = () => {
       )}
 
       {/* Monthly Summary & Metric Definitions Section (Calculates strictly for selected month & year) */}
-      <MonthlySummarySection />
+      {!settings.hideDashboardPriceCards && <MonthlySummarySection />}
 
       {/* When Empty: Show Welcome & Action Card */}
       {bikes.length === 0 && (
