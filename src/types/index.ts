@@ -123,10 +123,12 @@ export interface DealershipSettings {
   phone: string;
   email: string;
   taxNumber?: string;
+  startingCapital: number;
   currencySymbol: string;
   currencyCode: string;
   defaultFinanceCommissionRate: number;
   theme: 'dark' | 'light';
+  hideDashboardPriceCards: boolean;
 }
 
 export interface MonthlySummary {
@@ -161,6 +163,9 @@ export interface FinancialSummary {
   totalBikesInStock: number;
   totalBikesSold: number;
   totalBikesInventoryCount: number;
+  startingCapital: number;
+  currentAvailableCapital: number;
+  totalRealizedProfit: number;
   
   totalPurchaseCost: number; // Total Cost Prices
   totalRepairCost: number; // Total Other Costs

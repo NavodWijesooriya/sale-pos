@@ -144,7 +144,7 @@ export const Header: React.FC = () => {
               aria-label="Add new vehicle to inventory"
             >
               <PlusCircle className="w-4 h-4 text-slate-950 shrink-0" aria-hidden="true" />
-              <span>Add Bike</span>
+              <span>Add Vehicle</span>
             </button>
 
             {/* Desktop Settings & User Lockup */}

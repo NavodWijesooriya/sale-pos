@@ -128,12 +128,13 @@ export const formatDate = (dateStr?: string): string => {
   }
 };
 
-export const calculateFinancialSummary = (bikes: Bike[]): FinancialSummary => {
+export const calculateFinancialSummary = (bikes: Bike[], startingCapital = 0): FinancialSummary => {
   let inStockCount = 0;
   let soldCount = 0;
   let totalPurchaseCost = 0;
   let totalRepairCost = 0;
   let totalInventoryCost = 0;
+  let returnedPurchaseCosts = 0;
   let totalSalesRevenue = 0;
   let totalFinanceAmount = 0;
   let totalFinanceCommission = 0;
@@ -153,8 +154,9 @@ export const calculateFinancialSummary = (bikes: Bike[]): FinancialSummary => {
       soldCount++;
       const sale = bike.sale;
       totalSalesRevenue += sale.saleAmount;
-      totalNetProfit += sale.netProfit;
+      totalNetProfit += Number(sale.netProfit) || 0;
       totalCashInflow += sale.totalCashReceived;
+      returnedPurchaseCosts += Number(sale.purchasePrice) || Number(bike.purchasePrice) || 0;
 
       if (sale.saleMethod === 'Finance') {
         financeSalesCount++;
@@ -169,6 +171,7 @@ export const calculateFinancialSummary = (bikes: Bike[]): FinancialSummary => {
     }
   });
 
+  const normalizedStartingCapital = Number.isFinite(Number(startingCapital)) ? Number(startingCapital) : 0;
   const totalOutflows = totalPurchaseCost + totalRepairCost;
   const cashFlowBalance = totalCashInflow - totalOutflows;
   const averageProfitPerBike = soldCount > 0 ? totalNetProfit / soldCount : 0;
@@ -178,6 +181,9 @@ export const calculateFinancialSummary = (bikes: Bike[]): FinancialSummary => {
     totalBikesInStock: inStockCount,
     totalBikesSold: soldCount,
     totalBikesInventoryCount: bikes.length,
+    startingCapital: normalizedStartingCapital,
+    currentAvailableCapital: normalizedStartingCapital - totalPurchaseCost + returnedPurchaseCosts + totalNetProfit,
+    totalRealizedProfit: totalNetProfit,
     totalPurchaseCost,
     totalRepairCost,
     totalInventoryCost,

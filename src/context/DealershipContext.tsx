@@ -518,7 +518,10 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
     setIsPWAInstallable(false);
   };
 
-  const summary = useMemo(() => calculateFinancialSummary(bikes), [bikes]);
+  const summary = useMemo(
+    () => calculateFinancialSummary(bikes, settings.startingCapital),
+    [bikes, settings.startingCapital]
+  );
 
   const addBike = async (data: Partial<Bike>): Promise<Bike> => {
     if (!user) throw new Error('You must be signed in to add a vehicle.');

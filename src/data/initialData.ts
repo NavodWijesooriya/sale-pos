@@ -7,10 +7,12 @@ export const initialDealershipSettings: DealershipSettings = {
   phone: '',
   email: '',
   taxNumber: '',
+  startingCapital: 0,
   currencySymbol: 'Rs.',
   currencyCode: 'LKR',
   defaultFinanceCommissionRate: 0.03, // 3%
-  theme: 'dark'
+  theme: 'dark',
+  hideDashboardPriceCards: false
 };
 
 export const sampleBikes: Bike[] = [

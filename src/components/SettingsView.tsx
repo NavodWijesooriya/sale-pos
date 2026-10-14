@@ -27,7 +27,8 @@ export const SettingsView: React.FC = () => {
     exportDataToJson, 
     importDataFromJson,
     currentUser,
-    logout
+    logout,
+    showToast
   } = useDealership();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,6 +40,7 @@ export const SettingsView: React.FC = () => {
   const [phone, setPhone] = useState(settings.phone);
   const [email, setEmail] = useState(settings.email);
   const [taxNumber, setTaxNumber] = useState(settings.taxNumber || '');
+  const [startingCapital, setStartingCapital] = useState(String(settings.startingCapital));
   const [currencySymbol, setCurrencySymbol] = useState(settings.currencySymbol);
   const [theme, setTheme] = useState<'dark' | 'light'>(settings.theme);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -50,6 +52,7 @@ export const SettingsView: React.FC = () => {
     setPhone(settings.phone);
     setEmail(settings.email);
     setTaxNumber(settings.taxNumber || '');
+    setStartingCapital(String(settings.startingCapital));
     setCurrencySymbol(settings.currencySymbol);
     setTheme(settings.theme);
   }, [settings]);
@@ -60,6 +63,11 @@ export const SettingsView: React.FC = () => {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSavingSettings) return;
+    const capital = Number(startingCapital);
+    if (!startingCapital.trim() || !Number.isFinite(capital) || capital < 0) {
+      showToast('Invalid Starting Capital', 'Enter a valid amount of zero or more.', 'error');
+      return;
+    }
     setIsSavingSettings(true);
     try {
       await updateSettings({
@@ -69,6 +77,7 @@ export const SettingsView: React.FC = () => {
         phone,
         email,
         taxNumber,
+        startingCapital: capital,
         currencySymbol,
         theme
       });
@@ -236,7 +245,33 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Section 3: Currency & Commission */}
+        {/* Section 3: Starting Capital */}
+        <div className="space-y-4 pt-4 border-t border-slate-800">
+          <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-emerald-400" aria-hidden="true" />
+            Business Capital
+          </h2>
+          <div className="max-w-md">
+            <label htmlFor="starting-capital" className="block text-xs font-semibold text-slate-300 mb-1">
+              Starting Capital ({currencySymbol})
+            </label>
+            <input
+              id="starting-capital"
+              type="number"
+              min="0"
+              step="any"
+              required
+              value={startingCapital}
+              onChange={(e) => setStartingCapital(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm text-white outline-none focus:border-sky-500 font-mono focus-visible:ring-2 focus-visible:ring-sky-400"
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              Vehicle purchases and completed sale profits update available capital automatically.
+            </p>
+          </div>
+        </div>
+
+        {/* Section 4: Currency & Commission */}
         <div className="space-y-4 pt-4 border-t border-slate-800">
           <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-400" aria-hidden="true" />
@@ -276,7 +311,7 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Section 4: Theme */}
+        {/* Section 5: Theme */}
         <div className="space-y-3 pt-4 border-t border-slate-800">
           <label className="block text-xs font-semibold text-slate-300">Theme Appearance</label>
           <div className="flex flex-col sm:flex-row gap-3 max-w-sm">
@@ -320,7 +355,7 @@ export const SettingsView: React.FC = () => {
         </div>
       </form>
 
-      {/* Section 5: Database Management */}
+      {/* Section 6: Database Management */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
         <h2 className="text-sm font-black text-white uppercase tracking-wider">
           Database & Cross-Device Sync
