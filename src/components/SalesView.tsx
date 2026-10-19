@@ -14,7 +14,9 @@ import {
   FileSpreadsheet,
   TrendingUp,
   Percent,
-  Coins
+  Coins,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { calculateFinancialSummary, formatCurrency, formatDate } from '../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
@@ -29,7 +31,8 @@ export const SalesView: React.FC = () => {
     openSaleModalForBike, 
     revertSale, 
     openDetailModalForBike,
-    setIsAddBikeModalOpen
+    setIsAddBikeModalOpen,
+    updateSettings
   } = useDealership();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -204,65 +207,104 @@ export const SalesView: React.FC = () => {
         </div>
       </div>
 
+      <div className="rounded-[28px] border border-sky-500/30 bg-slate-950/90 p-4 sm:p-5 shadow-[0_0_0_1px_rgba(45,212,191,0.15)]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white">Business Capital</h2>
+            <p className="mt-2 text-sm text-slate-300">
+              Available capital returns the purchase price when a vehicle sells and includes realized net profit.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void updateSettings({ hideDashboardPriceCards: !settings.hideDashboardPriceCards })}
+            aria-pressed={settings.hideDashboardPriceCards}
+            aria-label={settings.hideDashboardPriceCards ? 'Show business capital section' : 'Hide business capital section'}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-200 transition-colors hover:border-sky-500/50 hover:text-white"
+          >
+            {settings.hideDashboardPriceCards ? <Eye className="h-4 w-4 text-sky-400" /> : <EyeOff className="h-4 w-4 text-sky-400" />}
+            {settings.hideDashboardPriceCards ? 'Show' : 'Hide'}
+          </button>
+        </div>
+
+        {!settings.hideDashboardPriceCards && (
+          <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
+            <div className="rounded-[20px] border border-sky-500/35 bg-slate-900/80 p-4 sm:p-5 min-h-[180px] flex flex-col justify-between">
+              <div className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.18em] text-sky-300">Starting Capital</div>
+              <div className="mt-4 text-[28px] sm:text-[32px] font-black text-white leading-none tracking-tight">
+                {formatCurrency(summary.startingCapital, symbol)}
+              </div>
+            </div>
+
+            <div className="rounded-[20px] border border-emerald-500/35 bg-slate-900/80 p-4 sm:p-5 min-h-[180px] flex flex-col justify-between">
+              <div className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.18em] text-emerald-300">Available Capital</div>
+              <div className={`mt-4 text-[28px] sm:text-[32px] font-black leading-none tracking-tight ${summary.currentAvailableCapital >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {formatCurrency(summary.currentAvailableCapital, symbol)}
+              </div>
+            </div>
+
+            <div className="rounded-[20px] border border-amber-500/35 bg-slate-900/80 p-4 sm:p-5 min-h-[180px] flex flex-col justify-between">
+              <div className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.18em] text-amber-300">Total Vehicle Purchase Costs</div>
+              <div className="mt-4 text-[28px] sm:text-[32px] font-black text-amber-300 leading-none tracking-tight">
+                {formatCurrency(summary.totalPurchaseCost, symbol)}
+              </div>
+              <div className="mt-4 border-t border-slate-700 pt-3 text-xs text-slate-400">
+                Lifetime purchases, before sale returns
+              </div>
+            </div>
+
+            <div className="rounded-[20px] border border-emerald-500/35 bg-slate-900/80 p-4 sm:p-5 min-h-[180px] flex flex-col justify-between">
+              <div className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.18em] text-emerald-300">Total Realized Profits</div>
+              <div className={`mt-4 text-[28px] sm:text-[32px] font-black leading-none tracking-tight ${summary.totalRealizedProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {formatCurrency(summary.totalRealizedProfit, symbol)}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Financial Summary Ribbon */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between h-full">
-          <div className="h-6 flex items-center justify-between shrink-0">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Total Sales Turnover</span>
-          </div>
-          <div className="my-2 flex items-center h-8 shrink-0">
-            <span className="text-base sm:text-xl font-black text-white font-mono tracking-tight leading-none truncate">
-              {formatCurrency(displaySummary.totalSalesRevenue, symbol)}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+        <div className="rounded-[26px] border border-amber-400/50 bg-slate-950/90 p-4 sm:p-5 shadow-[0_0_0_1px_rgba(251,191,36,0.25)] min-h-[210px] flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.18em] text-amber-300">
+              3% commissions
+            </span>
+            <span className="inline-flex items-center justify-center min-w-[44px] h-7 rounded-md border border-amber-400/35 bg-amber-500/10 px-2 text-[10px] font-black text-amber-300">
+              3%
             </span>
           </div>
-          <div className="mt-auto pt-2 border-t border-slate-800/80 text-xs text-slate-400 min-h-[28px] flex items-center shrink-0">
-            {displaySummary.totalBikesSold} vehicles sold
-          </div>
-        </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between h-full">
-          <div className="h-6 flex items-center justify-between shrink-0">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Total Cost Outflow</span>
-          </div>
-          <div className="my-2 flex items-center h-8 shrink-0">
-            <span className="text-base sm:text-xl font-black text-slate-300 font-mono tracking-tight leading-none truncate">
-              {formatCurrency(displaySummary.totalPurchaseCost + displaySummary.totalRepairCost, symbol)}
-            </span>
-          </div>
-          <div className="mt-auto pt-2 border-t border-slate-800/80 text-xs text-slate-400 min-h-[28px] flex items-center shrink-0">
-            Historical outflow across sold and in-stock vehicles
-          </div>
-        </div>
-
-        <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 bg-amber-950/10 shadow-sm flex flex-col justify-between h-full">
-          <div className="h-6 flex items-center justify-between shrink-0">
-            <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider truncate">3% Commissions</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold shrink-0">3%</span>
-          </div>
-          <div className="my-2 flex items-center h-8 shrink-0">
-            <span className="text-base sm:text-xl font-black text-amber-400 font-mono tracking-tight leading-none truncate">
+          <div className="mt-4 flex items-end gap-1">
+            <span className="text-[26px] sm:text-[34px] font-black text-amber-300 tracking-tight leading-none">
               +{formatCurrency(displaySummary.totalFinanceCommission, symbol)}
             </span>
           </div>
-          <div className="mt-auto pt-2 border-t border-slate-800/80 text-xs text-amber-400/90 min-h-[28px] flex items-center shrink-0">
-            Dealer commission earned
+
+          <div className="mt-5 pt-4 border-t border-slate-700/80">
+            <span className="text-[15px] sm:text-[17px] text-amber-200/90">Dealer commission earned</span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-950/30 to-slate-900/90 border border-emerald-500/40 rounded-2xl p-4 shadow-sm flex flex-col justify-between h-full">
-          <div className="h-6 flex items-center justify-between shrink-0">
-            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider truncate">Total Net Profit</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold shrink-0">
+        <div className="rounded-[26px] border border-emerald-400/50 bg-slate-950/90 p-4 sm:p-5 shadow-[0_0_0_1px_rgba(45,212,191,0.25)] min-h-[210px] flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.18em] text-emerald-300">
+              Total Net Profit
+            </span>
+            <span className="inline-flex items-center justify-center min-w-[54px] h-7 rounded-md border border-emerald-400/35 bg-emerald-500/10 px-2 text-[10px] font-black text-emerald-300">
               {displaySummary.averageProfitMarginPercent.toFixed(1)}%
             </span>
           </div>
-          <div className="my-2 flex items-center h-8 shrink-0">
-            <span className="text-base sm:text-xl font-black text-emerald-400 font-mono tracking-tight leading-none truncate">
+
+          <div className="mt-4 flex items-end gap-1">
+            <span className="text-[26px] sm:text-[34px] font-black text-emerald-300 tracking-tight leading-none">
               {formatCurrency(displaySummary.totalNetProfit, symbol)}
             </span>
           </div>
-          <div className="mt-auto pt-2 border-t border-slate-800/80 text-xs text-emerald-400/90 min-h-[28px] flex items-center shrink-0">
-            Net realized profit
+
+          <div className="mt-5 pt-4 border-t border-slate-700/80">
+            <span className="text-[15px] sm:text-[17px] text-emerald-200/90">Net realized profit</span>
           </div>
         </div>
       </div>
