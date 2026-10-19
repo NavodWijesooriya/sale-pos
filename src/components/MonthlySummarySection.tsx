@@ -5,7 +5,6 @@ import {
   Calendar, 
   TrendingUp, 
   DollarSign, 
-  Coins, 
   Wrench, 
   Car, 
   Bike as BikeIcon, 
@@ -273,7 +272,7 @@ export const MonthlySummarySection: React.FC = () => {
         </div>
 
         {/* 1. Core Volume & High-Level Breakdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           {/* Metric 1: Total Vehicles Sold */}
           <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 hover:border-slate-700 transition-all shadow-md flex flex-col justify-between h-full">
@@ -283,7 +282,7 @@ export const MonthlySummarySection: React.FC = () => {
                 <CheckCircle className="w-4 h-4" aria-hidden="true" />
               </div>
             </div>
-            <div className="my-3 flex items-baseline gap-2 h-9 shrink-0">
+            <div className="my-3 flex items-center gap-2 h-9 shrink-0">
               <span className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight leading-none">
                 {currentMonthSummary.totalVehiclesSold}
               </span>
@@ -321,27 +320,7 @@ export const MonthlySummarySection: React.FC = () => {
             </div>
           </div>
 
-          {/* Metric 3: Total Vehicle Cost */}
-          <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 hover:border-slate-700 transition-all shadow-md flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between gap-2 h-8 shrink-0">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-orange-400 truncate">Total Vehicle Cost</span>
-              <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/20">
-                <Coins className="w-4 h-4" aria-hidden="true" />
-              </div>
-            </div>
-            <div className="my-3 flex items-center h-9 shrink-0">
-              <span className="text-2xl sm:text-3xl font-black text-orange-400 font-mono tracking-tight leading-none truncate">
-                {formatCurrency(currentMonthSummary.totalVehicleCost, symbol)}
-              </span>
-            </div>
-            <div className="mt-auto pt-3 border-t border-slate-800/80 min-h-[46px] flex items-center shrink-0">
-              <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">
-                Total purchase/cost price of all vehicles sold
-              </p>
-            </div>
-          </div>
-
-          {/* Metric 4: Total Expenses */}
+          {/* Metric 3: Total Expenses */}
           <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 hover:border-slate-700 transition-all shadow-md flex flex-col justify-between h-full">
             <div className="flex items-center justify-between gap-2 h-8 shrink-0">
               <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 truncate">Total Expenses</span>
