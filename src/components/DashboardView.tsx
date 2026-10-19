@@ -167,49 +167,11 @@ export const DashboardView: React.FC = () => {
               {formatCurrency(summary.totalFinanceCommission, symbol)}
             </div>
           </div>
-          <div className="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl border border-slate-800/60">
-            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Dealership Cash Flow</div>
-            <div className={`text-sm sm:text-base lg:text-lg font-black mt-0.5 font-mono truncate ${summary.cashFlowBalance >= 0 ? 'text-cyan-400' : 'text-amber-400'}`}>
-              {formatCurrency(summary.cashFlowBalance, symbol)}
-            </div>
-          </div>
+         
         </div>
         )}
       </div>
 
-      {!settings.hideDashboardPriceCards && (
-      <section className="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 sm:p-5 shadow-xl" aria-labelledby="business-capital-title">
-        <div className="mb-4">
-          <h2 id="business-capital-title" className="text-sm font-black text-white uppercase tracking-wider">Business Capital</h2>
-          <p className="text-xs text-slate-400 mt-1">Available capital returns the purchase price when a vehicle sells and includes realized net profit.</p>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
-            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Starting Capital</div>
-            <div className="mt-1 text-sm sm:text-base font-black text-white font-mono break-words">{formatCurrency(summary.startingCapital, symbol)}</div>
-          </div>
-          <div className="rounded-xl bg-slate-950/70 border border-emerald-500/30 p-3">
-            <div className="text-[11px] text-emerald-300 font-semibold uppercase tracking-wider">Available Capital</div>
-            <div className={`mt-1 text-sm sm:text-base font-black font-mono break-words ${summary.currentAvailableCapital >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {formatCurrency(summary.currentAvailableCapital, symbol)}
-            </div>
-          </div>
-          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
-            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Total Vehicle Purchase Costs</div>
-            <div className="mt-1 text-sm sm:text-base font-black text-orange-300 font-mono break-words">{formatCurrency(summary.totalPurchaseCost, symbol)}</div>
-            <div className="text-[10px] text-slate-500 mt-1">Lifetime purchases, before sale returns</div>
-          </div>
-          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
-            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Total Realized Profits</div>
-            <div className={`mt-1 text-sm sm:text-base font-black font-mono break-words ${summary.totalRealizedProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {formatCurrency(summary.totalRealizedProfit, symbol)}
-            </div>
-          </div>
-        </div>
-      </section>
-      )}
-
-      
 
       {/* Main KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-5">
