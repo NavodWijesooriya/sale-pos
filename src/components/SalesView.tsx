@@ -279,10 +279,10 @@ export const SalesView: React.FC = () => {
         <div className="rounded-2xl border border-slate-800 bg-slate-900/90 hover:border-amber-500/30 p-4 sm:p-5 shadow-sm transition-all duration-300 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              3% Commissions
+               Commissions
             </span>
             <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/20 text-xs font-bold text-amber-300">
-              3%
+              
             </span>
           </div>
 

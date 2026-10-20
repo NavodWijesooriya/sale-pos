@@ -58,7 +58,7 @@ export const DashboardView: React.FC = () => {
               </span>
               <span className="text-slate-400 text-xs hidden sm:inline" aria-hidden="true">•</span>
               <span className="text-slate-300 text-xs">
-                Finance Commission: <strong className="text-amber-400">3.0%</strong>
+                Finance Commission: <strong className="text-amber-400"></strong>
               </span>
             </div>
             
@@ -67,7 +67,7 @@ export const DashboardView: React.FC = () => {
             </h1>
             
             <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              Manage motorcycle inventory, cost prices, other repair and transport costs, selling prices, and automatic 3% finance commission calculations in Sri Lankan Rupees (LKR).
+              Manage motorcycle inventory, cost prices, other repair and transport costs, selling prices, and automatic  finance commission calculations in Sri Lankan Rupees (LKR).
             </p>
           </div>
 

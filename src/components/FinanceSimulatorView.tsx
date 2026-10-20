@@ -58,10 +58,10 @@ export const FinanceSimulatorView: React.FC = () => {
       <div className="text-center sm:text-left">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold mb-2">
           <Percent className="w-3.5 h-3.5" />
-          <span>Automated 3.0% Lender Commission Engine (LKR)</span>
+          <span>Automated  Lender Commission Engine (LKR)</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-          3% Finance Commission & Profit <span className="text-amber-400">Simulator</span>
+           Finance Commission & Profit <span className="text-amber-400">Simulator</span>
         </h1>
         <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
           Model vehicle finance deals before quoting customers. Compare Cash vs. Finance side-by-side in Sri Lankan Rupees (LKR) to see how the 3% lender commission maximizes dealership net profit.
@@ -233,7 +233,7 @@ export const FinanceSimulatorView: React.FC = () => {
                   Finance Sale
                 </span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
-                  +3% Comm
+                   Comm
                 </span>
               </div>
 
@@ -247,7 +247,7 @@ export const FinanceSimulatorView: React.FC = () => {
                   <span className="font-mono text-rose-400">-{formatCurrency(financeResult.totalCost, symbol)}</span>
                 </div>
                 <div className="flex justify-between text-amber-300 font-bold">
-                  <span>3% Commission:</span>
+                  <span>Finance Commission:</span>
                   <span className="font-mono text-amber-400">+{formatCurrency(financeResult.financeCommission, symbol)}</span>
                 </div>
                 <div className="pt-2 border-t border-slate-800 flex justify-between font-bold">
@@ -285,7 +285,7 @@ export const FinanceSimulatorView: React.FC = () => {
             </div>
 
             <span className="text-xs font-mono font-bold text-amber-400 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 shrink-0">
-              3% of Loan
+              of Loan
             </span>
           </div>
         </div>

@@ -304,7 +304,7 @@ export const SettingsView: React.FC = () => {
               <div className="p-3 min-h-[44px] rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
                 <span>Dealer Finance Commission:</span>
                 <span className="font-black text-amber-400 px-2.5 py-1 rounded bg-amber-500/20 border border-amber-500/30">
-                  3.0% of Financed Amount
+                   Financed Amount
                 </span>
               </div>
             </div>

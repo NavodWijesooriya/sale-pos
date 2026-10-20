@@ -47,8 +47,8 @@ export interface SaleRecord {
   
   // Finance specific fields
   financeAmount: number;
-  financeCommissionRate: number; // 0.03 for 3%
-  financeCommission: number; // 3% of financeAmount
+  financeCommissionRate: number; // 0.03 for 
+  financeCommission: number; //  of financeAmount
   customerDeposit: number;
   
   // Summary outputs

@@ -724,7 +724,7 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
     setBikes((prev) => prev.map((item) => item.id === bikeId ? updatedBike : item));
 
     const commissionNotice = newSale.saleMethod === 'Finance'
-      ? ` Included 3% finance commission of ${formatCurrency(newSale.financeCommission, settings.currencySymbol)}.`
+      ? ` Included  finance commission of ${formatCurrency(newSale.financeCommission, settings.currencySymbol)}.`
       : '';
     showToast(
       'Sale Recorded!',

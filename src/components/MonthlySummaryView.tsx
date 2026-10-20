@@ -77,7 +77,7 @@ export const MonthlySummaryView: React.FC = () => {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [bikes]);
 
-  // 3% Finance Simulator State
+  //  Finance Simulator State
   const [simStockBikeId, setSimStockBikeId] = useState<string>('');
   const [simPurchasePrice, setSimPurchasePrice] = useState<number>(750000);
   const [simRepairCost, setSimRepairCost] = useState<number>(45000);
@@ -258,7 +258,7 @@ export const MonthlySummaryView: React.FC = () => {
             }`}
           >
             <Calculator className="w-4 h-4 text-amber-400" aria-hidden="true" />
-            <span>3% Finance Sim</span>
+            <span> Finance Sim</span>
           </button>
         </div>
       </div>
@@ -1107,7 +1107,7 @@ export const MonthlySummaryView: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW 2: 3% FINANCE SIMULATOR (Retained as Secondary Simulation Tool)      */}
+      {/* VIEW 2:  FINANCE SIMULATOR (Retained as Secondary Simulation Tool)      */}
       {/* ========================================================================= */}
       {subTab === 'simulator' && (
         <div className="space-y-6">
@@ -1116,7 +1116,7 @@ export const MonthlySummaryView: React.FC = () => {
               <div>
                 <h2 className="text-lg font-black text-white flex items-center gap-2">
                   <Calculator className="w-5 h-5 text-amber-400" />
-                  <span>3% Finance Commission & Profit Simulator</span>
+                  <span> Finance Commission & Profit Simulator</span>
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Model vehicle finance deals and calculate 3% lender commissions in Sri Lankan Rupees.
@@ -1253,7 +1253,7 @@ export const MonthlySummaryView: React.FC = () => {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-amber-300 uppercase">Finance Sale</span>
                     <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
-                      +3% Comm
+                       Comm
                     </span>
                   </div>
                   <div className="space-y-1.5 text-xs font-mono">
@@ -1266,7 +1266,7 @@ export const MonthlySummaryView: React.FC = () => {
                       <span className="text-orange-400">-{formatCurrency(simFinanceResult.totalCost, symbol)}</span>
                     </div>
                     <div className="flex justify-between text-slate-400">
-                      <span>3% Commission:</span>
+                      <span> Commission:</span>
                       <span className="text-amber-400 font-bold">+{formatCurrency(simFinanceResult.financeCommission, symbol)}</span>
                     </div>
                   </div>

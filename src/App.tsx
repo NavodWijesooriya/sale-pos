@@ -107,7 +107,7 @@ const MainLayout: React.FC = () => {
             <span>•</span>
             <span>Closed Deals: {summary.totalBikesSold}</span>
             <span>•</span>
-            <span>3% Finance Commission Active</span>
+            <span> Finance Commission Active</span>
           </div>
         </div>
       </footer>

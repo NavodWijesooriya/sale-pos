@@ -408,7 +408,7 @@ export const InventoryView: React.FC = () => {
                         </div>
                         {bike.sale.saleMethod === 'Finance' && (
                           <div className="flex justify-between items-center text-[11px] text-amber-400">
-                            <span>3% Finance Comm:</span>
+                            <span> Finance Comm:</span>
                             <span className="font-bold font-mono">+{formatCurrency(bike.sale.financeCommission, symbol)}</span>
                           </div>
                         )}
