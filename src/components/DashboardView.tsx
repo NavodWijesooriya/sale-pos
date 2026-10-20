@@ -143,31 +143,13 @@ export const DashboardView: React.FC = () => {
 
         {/* Highlight ticker with responsive wrapping */}
         {!settings.hideDashboardPriceCards && (
-        <div className="mt-5 pt-4 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl border border-slate-800/60">
+        <div className="mt-5 pt-4 border-t border-slate-800/80">
+          <div className="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl border border-slate-800/60 inline-flex flex-col min-w-[240px]">
             <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Showroom Inventory Cost</div>
             <div className="text-sm sm:text-base lg:text-lg font-black text-white mt-0.5 font-mono truncate">
               {formatCurrency(summary.totalInventoryCost, symbol)}
             </div>
           </div>
-          <div className="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl border border-slate-800/60">
-            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Realized Net Profit</div>
-            <div className="text-sm sm:text-base lg:text-lg font-black text-emerald-400 mt-0.5 flex flex-wrap items-center gap-1 font-mono truncate">
-              <span>{formatCurrency(summary.totalNetProfit, symbol)}</span>
-              {summary.totalSalesRevenue > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
-                  {summary.averageProfitMarginPercent.toFixed(1)}%
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl border border-slate-800/60">
-            <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">3% Finance Commissions</div>
-            <div className="text-sm sm:text-base lg:text-lg font-black text-amber-400 mt-0.5 font-mono truncate">
-              {formatCurrency(summary.totalFinanceCommission, symbol)}
-            </div>
-          </div>
-         
         </div>
         )}
       </div>
