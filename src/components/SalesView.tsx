@@ -212,7 +212,7 @@ export const SalesView: React.FC = () => {
           <div>
             <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white">Business Capital</h2>
             <p className="mt-1 text-xs sm:text-sm text-slate-400">
-              Available capital returns the purchase price when a vehicle sells and includes realized net profit.
+              Available capital deducts vehicle purchase and other costs (additional expenses), returns invested costs when sold, and includes realized net profit.
             </p>
           </div>
 
@@ -251,12 +251,13 @@ export const SalesView: React.FC = () => {
             </div>
 
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 sm:p-5 flex flex-col justify-between hover:border-amber-500/30 transition-all">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Vehicle Purchase Costs</div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Vehicle Costs Incurred</div>
               <div className="my-3 text-2xl sm:text-3xl font-black text-amber-400 font-mono tracking-tight leading-none">
-                {formatCurrency(summary.totalPurchaseCost, symbol)}
+                {formatCurrency(summary.totalPurchaseCost + summary.totalRepairCost, symbol)}
               </div>
-              <div className="mt-auto pt-3 border-t border-slate-800/80 text-xs text-slate-400 font-mono min-h-[30px] flex items-center">
-                Lifetime purchases, before sale returns
+              <div className="mt-auto pt-3 border-t border-slate-800/80 text-xs text-slate-400 font-mono min-h-[30px] flex items-center justify-between gap-1 flex-wrap">
+                <span>Buy: {formatCurrency(summary.totalPurchaseCost, symbol)}</span>
+                <span>Other: {formatCurrency(summary.totalRepairCost, symbol)}</span>
               </div>
             </div>
 

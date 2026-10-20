@@ -32,8 +32,10 @@ import {
   formatDate, 
   calculateMonthlySummary, 
   generateMonthByMonthComparison,
-  computeSaleFinancials
+  computeSaleFinancials,
+  calculateFinancialSummary
 } from '../utils/formatters';
+import { useAuth } from '../../context/AuthContext';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -41,7 +43,8 @@ const MONTH_NAMES = [
 ];
 
 export const MonthlySummaryView: React.FC = () => {
-  const { bikes, settings, openInvoiceForSale } = useDealership();
+  const { isAdmin } = useAuth();
+  const { bikes, settings, summary, openInvoiceForSale } = useDealership();
   const symbol = settings.currencySymbol;
 
   // Active sub-tab: 'summary' (Monthly Financial Summary) or 'simulator' (3% Finance Simulator)
@@ -52,6 +55,27 @@ export const MonthlySummaryView: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1); // 1-12
   const [historyViewMode, setHistoryViewMode] = useState<'table' | 'cards'>('table');
+
+  // User summaries for inventory owner stock & sales
+  const userSummaries = useMemo(() => {
+    return Array.from(
+      bikes.reduce((users, bike) => {
+        const ownerUid = bike.ownerUid || 'unassigned';
+        const existing = users.get(ownerUid);
+        if (existing) {
+          existing.bikes.push(bike);
+        } else {
+          users.set(ownerUid, {
+            ownerUid,
+            label: bike.createdByName || bike.createdByEmail || ownerUid,
+            bikes: [bike]
+          });
+        }
+        return users;
+      }, new Map<string, { ownerUid: string; label: string; bikes: typeof bikes }>()).values()
+    ).map((owner) => ({ ...owner, summary: calculateFinancialSummary(owner.bikes) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [bikes]);
 
   // 3% Finance Simulator State
   const [simStockBikeId, setSimStockBikeId] = useState<string>('');
@@ -1023,6 +1047,61 @@ export const MonthlySummaryView: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* ===================================================================== */}
+          {/* INVENTORY OWNER: STOCK & SALES (Admin Only)                           */}
+          {/* ===================================================================== */}
+          {isAdmin && (
+            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-sky-400" />
+                    <span>Inventory Owner: Stock & Sales</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Totals for records in this business account.</p>
+                </div>
+                <span className="text-xs font-semibold text-sky-300 font-mono">{userSummaries.length} record owners</span>
+              </div>
+              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
+                <table className="w-full min-w-[760px] text-left text-xs">
+                  <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                    <tr>
+                      <th className="px-4 py-3 font-bold">User</th>
+                      <th className="px-4 py-3 text-right font-bold">In Stock</th>
+                      <th className="px-4 py-3 text-right font-bold">Stock Cost</th>
+                      <th className="px-4 py-3 text-right font-bold">Sold</th>
+                      <th className="px-4 py-3 text-right font-bold">Total Sales</th>
+                      <th className="px-4 py-3 text-right font-bold text-emerald-400">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {userSummaries.map(({ ownerUid, label, summary: userSummary }) => (
+                      <tr key={ownerUid} className="hover:bg-slate-900/40 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="font-bold text-white">{label}</div>
+                          <div className="mt-0.5 font-mono text-[10px] text-slate-500">{ownerUid}</div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-slate-200">{userSummary.totalBikesInStock}</td>
+                        <td className="px-4 py-3 text-right font-mono text-slate-200">{formatCurrency(userSummary.totalInventoryCost, symbol)}</td>
+                        <td className="px-4 py-3 text-right font-mono text-slate-200">{userSummary.totalBikesSold}</td>
+                        <td className="px-4 py-3 text-right font-mono text-slate-200">{formatCurrency(userSummary.totalSalesRevenue, symbol)}</td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400">{formatCurrency(userSummary.totalNetProfit, symbol)}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-slate-950/70 font-bold border-t-2 border-slate-700">
+                      <td className="px-4 py-3 text-white">Overall</td>
+                      <td className="px-4 py-3 text-right font-mono text-white">{summary.totalBikesInStock}</td>
+                      <td className="px-4 py-3 text-right font-mono text-white">{formatCurrency(summary.totalInventoryCost, symbol)}</td>
+                      <td className="px-4 py-3 text-right font-mono text-white">{summary.totalBikesSold}</td>
+                      <td className="px-4 py-3 text-right font-mono text-white">{formatCurrency(summary.totalSalesRevenue, symbol)}</td>
+                      <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(summary.totalNetProfit, symbol)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
         </div>
       )}

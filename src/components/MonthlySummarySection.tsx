@@ -1,29 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { useDealership } from '../context/DealershipContext';
-import { MonthlySummary, Bike } from '../types';
+import { MonthlySummary } from '../types';
 import { 
   Calendar, 
-  TrendingUp, 
-  DollarSign, 
-  Wrench, 
-  Car, 
-  Bike as BikeIcon, 
-  CheckCircle, 
-  CreditCard, 
   ChevronLeft, 
   ChevronRight, 
-  BarChart3, 
-  Table as TableIcon, 
   ShieldCheck, 
-  ArrowUpRight, 
-  Layers, 
-  Sparkles,
-  Receipt,
-  FileText
+  Layers,
+  CheckCircle,
+  DollarSign,
+  Wrench
 } from 'lucide-react';
 import { 
   formatCurrency, 
-  formatDate, 
   calculateMonthlySummary, 
   generateMonthByMonthComparison 
 } from '../utils/formatters';
@@ -34,16 +23,15 @@ const MONTH_NAMES = [
 ];
 
 export const MonthlySummarySection: React.FC = () => {
-  const { bikes, settings, openInvoiceForSale } = useDealership();
+  const { bikes, settings } = useDealership();
   const symbol = settings.currencySymbol;
 
   // Current date initialization
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1); // 1-12
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
-  // Month-by-month comparative data across all recorded months
+  // Month-by-month comparative data across all recorded months (for quick month selector badges)
   const monthlyComparisons = useMemo(() => {
     return generateMonthByMonthComparison(bikes, 12);
   }, [bikes]);
@@ -63,18 +51,6 @@ export const MonthlySummarySection: React.FC = () => {
   // Compute selected month's 12 exact metric definitions
   const currentMonthSummary: MonthlySummary = useMemo(() => {
     return calculateMonthlySummary(bikes, selectedYear, selectedMonth);
-  }, [bikes, selectedYear, selectedMonth]);
-
-  // Vehicles sold specifically within the selected month and year
-  const soldVehiclesInMonth = useMemo(() => {
-    return bikes.filter((b) => {
-      if (b.status !== 'Sold' || !b.sale) return false;
-      const saleDate = new Date(b.sale.saleDate);
-      return (
-        saleDate.getFullYear() === selectedYear &&
-        saleDate.getMonth() + 1 === selectedMonth
-      );
-    }).sort((a, b) => new Date(b.sale!.saleDate).getTime() - new Date(a.sale!.saleDate).getTime());
   }, [bikes, selectedYear, selectedMonth]);
 
   // Quick navigation handlers
@@ -104,29 +80,6 @@ export const MonthlySummarySection: React.FC = () => {
   // Check if selected month is the active current calendar month
   const isCurrentCalendarMonth = 
     selectedYear === now.getFullYear() && selectedMonth === now.getMonth() + 1;
-
-  // Comparison totals across all recorded comparison months
-  const comparisonTotals = useMemo(() => {
-    return monthlyComparisons.reduce(
-      (acc, m) => {
-        acc.totalVehiclesSold += m.totalVehiclesSold;
-        acc.totalSalesRevenue += m.totalSalesRevenue;
-        acc.totalVehicleCost += m.totalVehicleCost;
-        acc.totalExpenses += m.totalExpenses;
-        acc.grossProfit += m.grossProfit;
-        acc.netProfit += m.netProfit;
-        return acc;
-      },
-      {
-        totalVehiclesSold: 0,
-        totalSalesRevenue: 0,
-        totalVehicleCost: 0,
-        totalExpenses: 0,
-        grossProfit: 0,
-        netProfit: 0
-      }
-    );
-  }, [monthlyComparisons]);
 
   return (
     <section className="space-y-6 bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl">
@@ -503,420 +456,6 @@ export const MonthlySummarySection: React.FC = () => {
           </div>
 
         </div>
-
-      </div>
-
-      {/* ========================================================================= */}
-      {/* MONTH-BY-MONTH VIEW FOR COMPARING                                         */}
-      {/* Sales Revenue, Vehicle Costs, Expenses, Gross Profit, and Net Profit      */}
-      {/* ========================================================================= */}
-      <div className="mt-8 pt-6 border-t border-slate-800 space-y-4">
-        
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-sky-400" />
-              Month-by-Month Comparative Analysis
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Side-by-side comparison of <strong>Sales Revenue</strong>, <strong>Vehicle Costs</strong>, <strong>Expenses</strong>, <strong>Gross Profit</strong>, and <strong>Net Profit</strong> across all active months.
-            </p>
-          </div>
-
-          {/* Mode Switcher */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'cards'
-                  ? 'bg-sky-500 text-slate-950 font-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Comparative Bars</span>
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'table'
-                  ? 'bg-sky-500 text-slate-950 font-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <TableIcon className="w-3.5 h-3.5" />
-              <span>Financial Ledger</span>
-            </button>
-          </div>
-        </div>
-
-        {/* View Mode 1: Comparative Progress Bars & Cards */}
-        {viewMode === 'cards' && (
-          <div className="space-y-3">
-            {monthlyComparisons.map((m) => {
-              const isSelected = m.year === selectedYear && m.month === selectedMonth;
-              const hasSales = m.totalSalesRevenue > 0;
-              const costPct = hasSales ? Math.min(100, Math.round((m.totalVehicleCost / m.totalSalesRevenue) * 100)) : 0;
-              const expPct = hasSales ? Math.min(100 - costPct, Math.round((m.totalExpenses / m.totalSalesRevenue) * 100)) : 0;
-              const netPct = hasSales ? Math.max(0, 100 - costPct - expPct) : 0;
-
-              return (
-                <div
-                  key={m.monthKey}
-                  onClick={() => {
-                    setSelectedYear(m.year);
-                    setSelectedMonth(m.month);
-                  }}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-slate-950 border-sky-500/60 shadow-xl shadow-sky-500/10 ring-1 ring-sky-500/30'
-                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-950/90'
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
-                    <div className="flex items-center gap-3">
-                      <span className={`text-sm sm:text-base font-black ${isSelected ? 'text-sky-300' : 'text-white'}`}>
-                        {m.monthLabel}
-                      </span>
-                      {isSelected && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-black bg-sky-500/20 text-sky-400 border border-sky-500/30">
-                          Selected Active
-                        </span>
-                      )}
-                      <span className="text-xs text-slate-400 font-mono">
-                        {m.totalVehiclesSold} sold ({m.carsSold} Cars • {m.bikesSold} Bikes)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-xs font-mono">
-                      <div>
-                        <span className="text-slate-400">Gross: </span>
-                        <strong className="text-sky-300">{formatCurrency(m.grossProfit, symbol)}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400">Net: </span>
-                        <strong className={m.netProfit >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'}>
-                          {formatCurrency(m.netProfit, symbol)}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 5 Comparative Metrics Columns */}
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3 pt-1 text-xs">
-                    <div>
-                      <div className="text-[10px] uppercase text-slate-400 font-bold">1. Sales Revenue</div>
-                      <div className="text-sm font-black text-white font-mono mt-0.5">
-                        {formatCurrency(m.totalSalesRevenue, symbol)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase text-orange-400/80 font-bold">2. Vehicle Costs</div>
-                      <div className="text-sm font-bold text-orange-400 font-mono mt-0.5">
-                        {formatCurrency(m.totalVehicleCost, symbol)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase text-rose-400/80 font-bold">3. Expenses</div>
-                      <div className="text-sm font-bold text-rose-400 font-mono mt-0.5">
-                        {formatCurrency(m.totalExpenses, symbol)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase text-sky-400/80 font-bold">4. Gross Profit</div>
-                      <div className="text-sm font-bold text-sky-300 font-mono mt-0.5">
-                        {formatCurrency(m.grossProfit, symbol)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase text-emerald-400 font-black">5. Net Profit</div>
-                      <div className={`text-sm font-black font-mono mt-0.5 ${
-                        m.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                      }`}>
-                        {formatCurrency(m.netProfit, symbol)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Comparative Visual Distribution Bar */}
-                  {hasSales && (
-                    <div className="mt-3 pt-2">
-                      <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden flex">
-                        <div
-                          style={{ width: `${costPct}%` }}
-                          title={`Vehicle Cost: ${costPct}%`}
-                          className="bg-orange-500/80 transition-all"
-                        />
-                        <div
-                          style={{ width: `${expPct}%` }}
-                          title={`Expenses: ${expPct}%`}
-                          className="bg-rose-500/80 transition-all"
-                        />
-                        <div
-                          style={{ width: `${netPct}%` }}
-                          title={`Net Profit: ${netPct}%`}
-                          className="bg-emerald-400 transition-all"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1 font-mono">
-                        <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Cost: {costPct}%
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Expenses: {expPct}%
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Net Profit: {netPct}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* View Mode 2: Full Tabular Ledger Comparison */}
-        {viewMode === 'table' && (
-          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
-                <tr>
-                  <th className="py-3 px-4">Period</th>
-                  <th className="py-3 px-3 text-center">Vehicles</th>
-                  <th className="py-3 px-4 text-right">Sales Revenue</th>
-                  <th className="py-3 px-4 text-right text-orange-400">Vehicle Costs</th>
-                  <th className="py-3 px-4 text-right text-rose-400">Expenses</th>
-                  <th className="py-3 px-4 text-right text-sky-400">Gross Profit</th>
-                  <th className="py-3 px-4 text-right text-emerald-400">Net Profit</th>
-                  <th className="py-3 px-3 text-center">Net Margin</th>
-                  <th className="py-3 px-3 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/80">
-                {monthlyComparisons.map((m) => {
-                  const isSelected = m.year === selectedYear && m.month === selectedMonth;
-
-                  return (
-                    <tr
-                      key={m.monthKey}
-                      className={`hover:bg-slate-900/50 transition-colors ${
-                        isSelected ? 'bg-sky-950/20 font-semibold' : ''
-                      }`}
-                    >
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-white flex items-center gap-1.5">
-                          {m.monthLabel}
-                          {isSelected && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">
-                          {m.cashSalesCount} cash • {m.financeSalesCount} finance
-                        </div>
-                      </td>
-
-                      <td className="py-3 px-3 text-center font-mono">
-                        <div className="text-white font-bold">{m.totalVehiclesSold}</div>
-                        <div className="text-[10px] text-slate-400">
-                          {m.carsSold}C / {m.bikesSold}B
-                        </div>
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono font-bold text-white">
-                        {formatCurrency(m.totalSalesRevenue, symbol)}
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono text-orange-400">
-                        {formatCurrency(m.totalVehicleCost, symbol)}
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono text-rose-400">
-                        {formatCurrency(m.totalExpenses, symbol)}
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono font-bold text-sky-300">
-                        {formatCurrency(m.grossProfit, symbol)}
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono font-black">
-                        <span className={m.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                          {formatCurrency(m.netProfit, symbol)}
-                        </span>
-                      </td>
-
-                      <td className="py-3 px-3 text-center font-mono">
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                          m.netMarginPercent > 0
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : m.netMarginPercent === 0
-                            ? 'bg-slate-800 text-slate-400'
-                            : 'bg-rose-500/20 text-rose-300'
-                        }`}>
-                          {m.netMarginPercent.toFixed(1)}%
-                        </span>
-                      </td>
-
-                      <td className="py-3 px-3 text-center">
-                        <button
-                          onClick={() => {
-                            setSelectedYear(m.year);
-                            setSelectedMonth(m.month);
-                          }}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                            isSelected
-                              ? 'bg-sky-500 text-slate-950 font-black'
-                              : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-                          }`}
-                        >
-                          {isSelected ? 'Active' : 'Select'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-
-              {/* Total Footers */}
-              <tfoot className="bg-slate-900 text-xs font-mono font-bold border-t-2 border-slate-700">
-                <tr>
-                  <td className="py-3 px-4 text-slate-300 uppercase">Cumulative Totals</td>
-                  <td className="py-3 px-3 text-center text-white font-black">{comparisonTotals.totalVehiclesSold}</td>
-                  <td className="py-3 px-4 text-right text-white font-black">{formatCurrency(comparisonTotals.totalSalesRevenue, symbol)}</td>
-                  <td className="py-3 px-4 text-right text-orange-400">{formatCurrency(comparisonTotals.totalVehicleCost, symbol)}</td>
-                  <td className="py-3 px-4 text-right text-rose-400">{formatCurrency(comparisonTotals.totalExpenses, symbol)}</td>
-                  <td className="py-3 px-4 text-right text-sky-300">{formatCurrency(comparisonTotals.grossProfit, symbol)}</td>
-                  <td className="py-3 px-4 text-right text-emerald-400 font-black">{formatCurrency(comparisonTotals.netProfit, symbol)}</td>
-                  <td className="py-3 px-3 text-center text-slate-400" colSpan={2}>
-                    {comparisonTotals.totalSalesRevenue > 0
-                      ? `${((comparisonTotals.netProfit / comparisonTotals.totalSalesRevenue) * 100).toFixed(1)}% avg net`
-                      : 'N/A'}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-
-      </div>
-
-      {/* ========================================================================= */}
-      {/* ITEMIZED TRANSACTIONS FOR SELECTED MONTH                                  */}
-      {/* ========================================================================= */}
-      <div className="mt-8 pt-6 border-t border-slate-800 space-y-3">
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-black text-slate-200 uppercase tracking-wider">
-              {currentMonthSummary.monthLabel} Itemized Sales Ledger ({soldVehiclesInMonth.length})
-            </h3>
-          </div>
-          <span className="text-xs text-slate-400">
-            Click &quot;View Document&quot; for customer bill / formal letter (Cost price hidden)
-          </span>
-        </div>
-
-        {soldVehiclesInMonth.length > 0 ? (
-          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
-                <tr>
-                  <th className="py-3 px-4">Vehicle</th>
-                  <th className="py-3 px-3">Date & Type</th>
-                  <th className="py-3 px-3">Customer</th>
-                  <th className="py-3 px-4 text-right">Sale Revenue</th>
-                  <th className="py-3 px-4 text-right text-orange-400">Cost Price</th>
-                  <th className="py-3 px-4 text-right text-rose-400">Expenses</th>
-                  <th className="py-3 px-4 text-right text-sky-400">Gross Profit</th>
-                  <th className="py-3 px-4 text-right text-emerald-400">Net Profit</th>
-                  <th className="py-3 px-3 text-center">Customer Doc</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/80">
-                {soldVehiclesInMonth.map((bike) => {
-                  const sale = bike.sale!;
-                  const vehicleType = bike.vehicleType || 'Bike';
-                  const vehicleIcon = vehicleType === 'Bike' ? '🏍️' : vehicleType === 'Three-Wheeler' ? '🛺' : vehicleType === 'Heavy Vehicle' ? '🚚' : '🚗';
-                  const isFinance = sale.saleMethod === 'Finance';
-                  const vehicleCost = Number(sale.purchasePrice ?? bike.purchasePrice) || 0;
-                  const expenses = Number(sale.totalRepairCost) || 0;
-                  const grossProfit = sale.saleAmount - vehicleCost;
-                  const netProfit = sale.netProfit;
-
-                  return (
-                    <tr key={bike.id} className="hover:bg-slate-900/40 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-white flex items-center gap-1.5">
-                          <span className="text-sm">{vehicleIcon}</span>
-                          <span>{bike.year} {bike.make} {bike.model}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">
-                          {bike.regPlate} • {vehicleType}
-                        </div>
-                      </td>
-
-                      <td className="py-3 px-3">
-                        <div className="text-white font-medium">{formatDate(sale.saleDate)}</div>
-                        <span className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                          isFinance ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
-                        }`}>
-                          {sale.saleMethod}
-                        </span>
-                      </td>
-
-                      <td className="py-3 px-3">
-                        <div className="text-white font-medium">{sale.customerName}</div>
-                        <div className="text-[10px] text-slate-400">{sale.customerPhone}</div>
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono font-bold text-white">
-                        {formatCurrency(sale.saleAmount, symbol)}
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono text-orange-400">
-                        {formatCurrency(vehicleCost, symbol)}
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono text-rose-400">
-                        {formatCurrency(expenses, symbol)}
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono font-bold text-sky-300">
-                        {formatCurrency(grossProfit, symbol)}
-                      </td>
-
-                      <td className="py-3 px-4 text-right font-mono font-black text-emerald-400">
-                        +{formatCurrency(netProfit, symbol)}
-                      </td>
-
-                      <td className="py-3 px-3 text-center">
-                        <button
-                          onClick={() => openInvoiceForSale(sale)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-xs font-bold transition-all hover:scale-105"
-                          title="Generate Modern Bill / Formal Letter"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Bill / Letter</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="p-6 rounded-2xl bg-slate-950/40 border border-slate-800 text-center space-y-2">
-            <p className="text-sm font-bold text-slate-400">
-              No transactions recorded for {currentMonthSummary.monthLabel}.
-            </p>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Vehicles sold during this period will automatically update the 12 Monthly Summary figures above.
-            </p>
-          </div>
-        )}
 
       </div>
 

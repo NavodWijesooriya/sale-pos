@@ -135,6 +135,7 @@ export const calculateFinancialSummary = (bikes: Bike[], startingCapital = 0): F
   let totalRepairCost = 0;
   let totalInventoryCost = 0;
   let returnedPurchaseCosts = 0;
+  let returnedRepairCosts = 0;
   let totalSalesRevenue = 0;
   let totalFinanceAmount = 0;
   let totalFinanceCommission = 0;
@@ -157,6 +158,9 @@ export const calculateFinancialSummary = (bikes: Bike[], startingCapital = 0): F
       totalNetProfit += Number(sale.netProfit) || 0;
       totalCashInflow += sale.totalCashReceived;
       returnedPurchaseCosts += Number(sale.purchasePrice) || Number(bike.purchasePrice) || 0;
+      returnedRepairCosts += (Number(sale.totalRepairCost) !== undefined && !isNaN(Number(sale.totalRepairCost)))
+        ? Number(sale.totalRepairCost)
+        : bikeOtherCost;
 
       if (sale.saleMethod === 'Finance') {
         financeSalesCount++;
@@ -173,6 +177,7 @@ export const calculateFinancialSummary = (bikes: Bike[], startingCapital = 0): F
 
   const normalizedStartingCapital = Number.isFinite(Number(startingCapital)) ? Number(startingCapital) : 0;
   const totalOutflows = totalPurchaseCost + totalRepairCost;
+  const totalReturnedCosts = returnedPurchaseCosts + returnedRepairCosts;
   const cashFlowBalance = totalCashInflow - totalOutflows;
   const averageProfitPerBike = soldCount > 0 ? totalNetProfit / soldCount : 0;
   const averageProfitMarginPercent = totalSalesRevenue > 0 ? (totalNetProfit / totalSalesRevenue) * 100 : 0;
@@ -182,7 +187,7 @@ export const calculateFinancialSummary = (bikes: Bike[], startingCapital = 0): F
     totalBikesSold: soldCount,
     totalBikesInventoryCount: bikes.length,
     startingCapital: normalizedStartingCapital,
-    currentAvailableCapital: normalizedStartingCapital - totalPurchaseCost + returnedPurchaseCosts + totalNetProfit,
+    currentAvailableCapital: normalizedStartingCapital - totalOutflows + totalReturnedCosts + totalNetProfit,
     totalRealizedProfit: totalNetProfit,
     totalPurchaseCost,
     totalRepairCost,

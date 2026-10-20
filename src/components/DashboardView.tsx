@@ -9,7 +9,6 @@ import {
   ArrowUpRight, 
   DollarSign, 
   Plus, 
-  Receipt, 
   ChevronRight, 
   Calendar,
   Calculator,
@@ -18,14 +17,14 @@ import {
   RefreshCw,
   BarChart3,
   Eye,
-  EyeOff
+  EyeOff,
+  TrendingUp
 } from 'lucide-react';
-import { calculateFinancialSummary, formatCurrency, formatDate } from '../utils/formatters';
-import { MonthlySummarySection } from './MonthlySummarySection';
+import { formatCurrency, formatNumber, calculateTotalOtherCosts } from '../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 
 export const DashboardView: React.FC = () => {
-  const { isAdmin, profile } = useAuth();
+  const { profile } = useAuth();
   const { 
     bikes, 
     settings, 
@@ -33,44 +32,13 @@ export const DashboardView: React.FC = () => {
     setActiveTab, 
     setIsAddBikeModalOpen, 
     openSaleModalForBike,
-    openInvoiceForSale,
     openDetailModalForBike,
     resetToDefaultData,
     updateSettings
   } = useDealership();
 
-  const soldBikes = bikes
-    .filter((b) => b.status === 'Sold' && b.sale)
-    .sort((a, b) => new Date(b.sale!.saleDate).getTime() - new Date(a.sale!.saleDate).getTime());
-
   const inStockBikes = bikes.filter((b) => b.status === 'In Stock');
-
   const symbol = settings.currencySymbol;
-
-  const totalCostSold = soldBikes.reduce((sum, b) => sum + (b.sale?.totalCost || 0), 0);
-  const totalNetProfit = summary.totalNetProfit;
-  const totalRevenue = summary.totalSalesRevenue;
-
-  const userSummaries = Array.from(
-    bikes.reduce((users, bike) => {
-      const ownerUid = bike.ownerUid || 'unassigned';
-      const existing = users.get(ownerUid);
-      if (existing) {
-        existing.bikes.push(bike);
-      } else {
-        users.set(ownerUid, {
-          ownerUid,
-          label: bike.createdByName || bike.createdByEmail || ownerUid,
-          bikes: [bike]
-        });
-      }
-      return users;
-    }, new Map<string, { ownerUid: string; label: string; bikes: typeof bikes }>()).values()
-  ).map((owner) => ({ ...owner, summary: calculateFinancialSummary(owner.bikes) }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-  
-  const costPercent = totalRevenue > 0 ? Math.min(100, Math.round((totalCostSold / totalRevenue) * 100)) : 0;
-  const profitPercent = totalRevenue > 0 ? Math.min(100, Math.round((totalNetProfit / totalRevenue) * 100)) : 0;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn">
@@ -224,57 +192,8 @@ export const DashboardView: React.FC = () => {
 
       </div>
 
-      {isAdmin && (
-        <section className="space-y-3" aria-labelledby="admin-user-summary-title">
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <h2 id="admin-user-summary-title" className="text-lg font-black text-white">Inventory Owner: Stock & Sales</h2>
-              <p className="text-xs text-slate-400">Totals for records in this business account.</p>
-            </div>
-            <span className="text-xs font-semibold text-sky-300">{userSummaries.length} record owners</span>
-          </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/80">
-            <table className="w-full min-w-[760px] text-left text-xs">
-              <thead className="bg-slate-950/80 text-[10px] uppercase text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 font-bold">User</th>
-                  <th className="px-4 py-3 text-right font-bold">In Stock</th>
-                  <th className="px-4 py-3 text-right font-bold">Stock Cost</th>
-                  <th className="px-4 py-3 text-right font-bold">Sold</th>
-                  <th className="px-4 py-3 text-right font-bold">Total Sales</th>
-                  <th className="px-4 py-3 text-right font-bold">Profit</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/80">
-                {userSummaries.map(({ ownerUid, label, summary: userSummary }) => (
-                  <tr key={ownerUid}>
-                    <td className="px-4 py-3">
-                      <div className="font-bold text-white">{label}</div>
-                      <div className="mt-0.5 font-mono text-[10px] text-slate-500">{ownerUid}</div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-200">{userSummary.totalBikesInStock}</td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-200">{formatCurrency(userSummary.totalInventoryCost, symbol)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-200">{userSummary.totalBikesSold}</td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-200">{formatCurrency(userSummary.totalSalesRevenue, symbol)}</td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400">{formatCurrency(userSummary.totalNetProfit, symbol)}</td>
-                  </tr>
-                ))}
-                <tr className="bg-slate-950/70 font-bold">
-                  <td className="px-4 py-3 text-white">Overall</td>
-                  <td className="px-4 py-3 text-right font-mono text-white">{summary.totalBikesInStock}</td>
-                  <td className="px-4 py-3 text-right font-mono text-white">{formatCurrency(summary.totalInventoryCost, symbol)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-white">{summary.totalBikesSold}</td>
-                  <td className="px-4 py-3 text-right font-mono text-white">{formatCurrency(summary.totalSalesRevenue, symbol)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(summary.totalNetProfit, symbol)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
 
-      {/* Monthly Summary & Metric Definitions Section (Calculates strictly for selected month & year) */}
-      {!settings.hideDashboardPriceCards && <MonthlySummarySection />}
+
 
       {/* When Empty: Show Welcome & Action Card */}
       {bikes.length === 0 && (
@@ -308,156 +227,169 @@ export const DashboardView: React.FC = () => {
         </div>
       )}
 
-      {/* In-Stock Showroom Preview & Recent Sales Table */}
+      {/* In-Stock Showroom Vehicle Cards */}
       {bikes.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* In-Stock Units */}
-          <div className="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-black text-white flex items-center gap-2">
-                  <Warehouse className="w-4 h-4 text-sky-400" />
-                  Showroom Vehicles in Stock ({inStockBikes.length})
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Ready for sale with cost price & profit targets</p>
-              </div>
-
-              <button
-                onClick={() => setActiveTab('inventory')}
-                className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1"
-              >
-                <span>All Inventory</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+        <section className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
+                <Warehouse className="w-5 h-5 text-sky-400" />
+                <span>Vehicles in Stock ({inStockBikes.length})</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                Showroom inventory ready for sale with purchase cost, other costs, and profit targets
+              </p>
             </div>
 
-            {inStockBikes.length > 0 ? (
-              <div className="space-y-3">
-                {inStockBikes.slice(0, 4).map((bike) => {
-                  const targetProfit = bike.targetSalePrice - bike.totalCost;
-                  const profitMargin = bike.targetSalePrice > 0 ? (targetProfit / bike.targetSalePrice) * 100 : 0;
+            <button
+              type="button"
+              onClick={() => setActiveTab('inventory')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-sky-400 hover:text-white border border-slate-700 text-xs font-bold transition-all self-start sm:self-auto"
+            >
+              <span>All Inventory</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
 
-                  return (
-                    <div
-                      key={bike.id}
-                      className="p-3 sm:p-4 rounded-xl bg-slate-950 border border-slate-800/80 hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <img
-                          src={bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'}
-                          alt={`${bike.year} ${bike.make} ${bike.model}`}
-                          referrerPolicy="no-referrer"
-                          className="w-12 h-12 rounded-lg object-cover border border-slate-800 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <button
-                            type="button"
-                            onClick={() => openDetailModalForBike(bike)}
-                            className="font-bold text-white text-xs sm:text-sm hover:text-sky-400 cursor-pointer text-left truncate block max-w-full focus-visible:outline-none focus-visible:text-sky-400"
-                          >
-                            {bike.year} {bike.make} {bike.model}
-                          </button>
-                          <div className="text-xs text-slate-400 font-mono mt-0.5">
-                            Cost: <strong className="text-slate-200">{formatCurrency(bike.totalCost, symbol)}</strong> • Plate: {bike.regPlate}
+          {inStockBikes.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+              {inStockBikes.map((bike) => {
+                const costPrice = Number(bike.purchasePrice) || 0;
+                const otherCostsTotal = calculateTotalOtherCosts(bike.repairCosts);
+                const totalCost = costPrice + otherCostsTotal;
+                const targetPrice = Number(bike.targetSalePrice) || 0;
+                const potentialProfit = targetPrice - totalCost;
+                const potentialMargin = targetPrice > 0 ? (potentialProfit / targetPrice) * 100 : 0;
+
+                return (
+                  <div 
+                    key={bike.id} 
+                    className="group rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 overflow-hidden flex flex-col justify-between"
+                  >
+                    {/* Image Section */}
+                    <div className="relative h-44 w-full bg-slate-950 overflow-hidden">
+                      <img 
+                        src={bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'} 
+                        alt={`${bike.make} ${bike.model}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
+
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-black tracking-wide shadow-md bg-sky-500 text-slate-950">
+                          IN STOCK
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-950/80 backdrop-blur-md text-slate-300 border border-slate-700">
+                          {bike.category}
+                        </span>
+                      </div>
+
+                      <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-slate-300 font-medium">
+                        <span className="bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 text-slate-300 text-[11px] font-mono">
+                          {bike.engineCapacityCc} cc
+                        </span>
+                        <span className="bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 text-amber-300 text-[11px] font-bold">
+                          {bike.condition}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                      <div>
+                        <h3 
+                          onClick={() => openDetailModalForBike(bike)}
+                          className="text-base font-black text-white hover:text-sky-400 cursor-pointer transition-colors leading-tight truncate"
+                          title={`${bike.year} ${bike.make} ${bike.model}`}
+                        >
+                          {bike.year} {bike.make} {bike.model}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-mono">
+                          <span>Plate: <strong className="text-slate-200">{bike.regPlate}</strong></span>
+                          {bike.mileage > 0 && (
+                            <>
+                              <span>•</span>
+                              <span>{formatNumber(bike.mileage)} km</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Financial Breakdown Card with Cost Price, Other Costs, and Target Profit */}
+                      <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 space-y-2 text-xs">
+                        <div className="flex justify-between items-center text-slate-400">
+                          <span>Cost Price:</span>
+                          <span className="font-semibold text-slate-200 font-mono">{formatCurrency(costPrice, symbol)}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <Wrench className="w-3 h-3 text-amber-400" />
+                            Other Costs ({bike.repairCosts?.length || 0}):
+                          </span>
+                          <span className="font-semibold text-amber-400 font-mono">+{formatCurrency(otherCostsTotal, symbol)}</span>
+                        </div>
+
+                        <div className="pt-1.5 border-t border-slate-800 flex justify-between items-center font-bold">
+                          <span className="text-slate-300">Total Cost:</span>
+                          <span className="text-white font-black font-mono">{formatCurrency(totalCost, symbol)}</span>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-800/80 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400">Target Selling Price:</span>
+                            <span className="font-black text-sky-400 font-mono">{formatCurrency(targetPrice, symbol)}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[11px] font-black pt-1 border-t border-slate-800/60">
+                            <span className="text-emerald-400 flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" /> Target Profit:
+                            </span>
+                            <span className="text-emerald-400 font-mono">
+                              +{formatCurrency(potentialProfit, symbol)} ({potentialMargin.toFixed(0)}%)
+                            </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-900">
-                        <div className="text-left sm:text-right">
-                          <div className="text-xs sm:text-sm font-black text-sky-400 font-mono">
-                            {formatCurrency(bike.targetSalePrice, symbol)}
-                          </div>
-                          <div className="text-[11px] text-emerald-400 font-bold font-mono">
-                            Est. Profit: +{formatCurrency(targetProfit, symbol)} ({profitMargin.toFixed(0)}%)
-                          </div>
-                        </div>
+                      {/* Actions Bar */}
+                      <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-800/80">
+                        <button
+                          type="button"
+                          onClick={() => openDetailModalForBike(bike)}
+                          className="flex-1 py-2.5 px-3 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-sky-400"
+                          aria-label={`View details for ${bike.make} ${bike.model}`}
+                        >
+                          <Eye className="w-4 h-4 text-sky-400" aria-hidden="true" />
+                          <span>Details</span>
+                        </button>
 
                         <button
                           type="button"
                           onClick={() => openSaleModalForBike(bike)}
-                          className="px-4 py-2.5 min-h-[44px] min-w-[72px] flex items-center justify-center rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md active:scale-95"
-                          aria-label={`Sell ${bike.make} ${bike.model}`}
+                          className="flex-1 py-2.5 px-3 min-h-[44px] rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-400"
+                          aria-label={`Record sale for ${bike.make} ${bike.model}`}
                         >
-                          Sell
+                          <DollarSign className="w-4 h-4 stroke-[3]" aria-hidden="true" />
+                          <span>Sell</span>
                         </button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-xs text-slate-500">
-                All vehicles have been sold! Click &quot;Add Vehicle&quot; to replenish stock.
-              </div>
-            )}
-          </div>
-
-          {/* Recent Sales History */}
-          <div className="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-black text-white flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-emerald-400" />
-                  Recent Sales & Net Profit
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Realized net returns on closed sales</p>
-              </div>
-
-              <button
-                onClick={() => setActiveTab('sales')}
-                className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+                  </div>
+                );
+              })}
             </div>
-
-            {soldBikes.length > 0 ? (
-              <div className="space-y-3">
-                {soldBikes.slice(0, 4).map((bike) => {
-                  const sale = bike.sale!;
-                  const isFinance = sale.saleMethod === 'Finance';
-
-                  return (
-                    <div
-                      key={sale.id}
-                      className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="font-bold text-white truncate">{sale.bikeSummary}</div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                          <span className={`px-1.5 py-0.2 rounded font-bold ${
-                            isFinance ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
-                          }`}>
-                            {sale.saleMethod}
-                          </span>
-                          <span>{sale.customerName}</span>
-                          <span>•</span>
-                          <span>{formatDate(sale.saleDate)}</span>
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        <div className="font-bold text-white font-mono">
-                          {formatCurrency(sale.saleAmount, symbol)}
-                        </div>
-                        <div className="font-black text-emerald-400 font-mono text-[11px]">
-                          +{formatCurrency(sale.netProfit, symbol)}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-xs text-slate-500">
-                No completed sales yet. When you sell a vehicle, profits will appear here.
-              </div>
-            )}
-          </div>
-        </div>
+          ) : (
+            <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+              <p className="text-sm font-bold text-slate-400">
+                No vehicles currently in stock.
+              </p>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                All vehicles have been sold. Click &quot;Add Vehicle&quot; to replenish stock.
+              </p>
+            </div>
+          )}
+        </section>
       )}
     </div>
   );

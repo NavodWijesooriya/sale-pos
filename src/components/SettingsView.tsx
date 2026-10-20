@@ -266,7 +266,7 @@ export const SettingsView: React.FC = () => {
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm text-white outline-none focus:border-sky-500 font-mono focus-visible:ring-2 focus-visible:ring-sky-400"
             />
             <p className="mt-1 text-xs text-slate-400">
-              Vehicle purchases and completed sale profits update available capital automatically.
+              Vehicle purchases, additional expenses (other costs), and completed sale profits update available capital automatically.
             </p>
           </div>
         </div>
