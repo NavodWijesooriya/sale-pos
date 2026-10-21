@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatNumber, calculateTotalOtherCosts } from '../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
+import { FinanceInstallmentCalculator } from './FinanceInstallmentCalculator';
 
 export const DashboardView: React.FC = () => {
   const { profile } = useAuth();
@@ -192,8 +193,8 @@ export const DashboardView: React.FC = () => {
 
       </div>
 
-
-
+      {/* Vehicle Financing Monthly Installment Calculator */}
+      <FinanceInstallmentCalculator />
 
       {/* When Empty: Show Welcome & Action Card */}
       {bikes.length === 0 && (

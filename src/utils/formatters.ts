@@ -391,3 +391,85 @@ export const generateMonthByMonthComparison = (
     return calculateMonthlySummary(bikes, year, month);
   });
 };
+
+export interface FinanceInstallmentParams {
+  financeAmount: number;
+  annualInterestRate: number; // percentage, e.g. 14 for 14%
+  periodMonths: number;
+  calculationMethod?: 'reducing' | 'flat';
+}
+
+export interface FinanceInstallmentResult {
+  monthlyInstallment: number;
+  totalAmountPayable: number;
+  totalInterest: number;
+  principalAmount: number;
+  effectiveMonthlyRate: number;
+}
+
+/**
+ * Calculates monthly installment payments for vehicle financing.
+ * Supports both standard Reducing Balance (Equated Monthly Installment - EMI)
+ * and Flat Rate (common in vehicle leasing / hire-purchase).
+ */
+export const calculateFinanceInstallment = (
+  params: FinanceInstallmentParams
+): FinanceInstallmentResult => {
+  const principal = Math.max(0, Number(params.financeAmount) || 0);
+  const annualRate = Math.max(0, Number(params.annualInterestRate) || 0);
+  const months = Math.max(1, Math.round(Number(params.periodMonths) || 1));
+  const method = params.calculationMethod || 'reducing';
+
+  if (principal === 0) {
+    return {
+      monthlyInstallment: 0,
+      totalAmountPayable: 0,
+      totalInterest: 0,
+      principalAmount: 0,
+      effectiveMonthlyRate: 0
+    };
+  }
+
+  if (annualRate === 0) {
+    const installment = principal / months;
+    return {
+      monthlyInstallment: installment,
+      totalAmountPayable: principal,
+      totalInterest: 0,
+      principalAmount: principal,
+      effectiveMonthlyRate: 0
+    };
+  }
+
+  if (method === 'flat') {
+    // Flat Rate formula: Total Interest = P * (Annual Rate / 100) * (Months / 12)
+    const totalInterest = principal * (annualRate / 100) * (months / 12);
+    const totalAmountPayable = principal + totalInterest;
+    const monthlyInstallment = totalAmountPayable / months;
+
+    return {
+      monthlyInstallment,
+      totalAmountPayable,
+      totalInterest,
+      principalAmount: principal,
+      effectiveMonthlyRate: annualRate / 12
+    };
+  }
+
+  // Reducing Balance formula (Standard EMI):
+  // r = (Annual Rate / 100) / 12
+  // EMI = [P * r * (1 + r)^n] / [(1 + r)^n - 1]
+  const monthlyRate = (annualRate / 100) / 12;
+  const rateFactor = Math.pow(1 + monthlyRate, months);
+  const monthlyInstallment = (principal * monthlyRate * rateFactor) / (rateFactor - 1);
+  const totalAmountPayable = monthlyInstallment * months;
+  const totalInterest = Math.max(0, totalAmountPayable - principal);
+
+  return {
+    monthlyInstallment,
+    totalAmountPayable,
+    totalInterest,
+    principalAmount: principal,
+    effectiveMonthlyRate: monthlyRate * 100
+  };
+};
