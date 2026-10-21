@@ -145,33 +145,52 @@ export const calculateFinancialSummary = (bikes: Bike[], startingCapital = 0): F
   let totalCashInflow = 0;
 
   bikes.forEach((bike) => {
-    const bikeOtherCost = calculateTotalOtherCosts(bike.repairCosts);
-    const bikeTotalCost = (Number(bike.purchasePrice) || 0) + bikeOtherCost;
+    // Determine the authoritative purchase cost and other costs for this vehicle
+    const purchaseCost = Number(bike.purchasePrice) || Number(bike.sale?.purchasePrice) || 0;
+    const otherCosts = (bike.repairCosts && bike.repairCosts.length > 0)
+      ? calculateTotalOtherCosts(bike.repairCosts)
+      : (Number(bike.sale?.totalRepairCost) || 0);
+    const vehicleTotalCost = purchaseCost + otherCosts;
 
-    totalPurchaseCost += Number(bike.purchasePrice) || 0;
-    totalRepairCost += bikeOtherCost;
+    totalPurchaseCost += purchaseCost;
+    totalRepairCost += otherCosts;
 
     if (bike.status === 'Sold' && bike.sale) {
       soldCount++;
       const sale = bike.sale;
-      totalSalesRevenue += sale.saleAmount;
-      totalNetProfit += Number(sale.netProfit) || 0;
-      totalCashInflow += sale.totalCashReceived;
-      returnedPurchaseCosts += Number(sale.purchasePrice) || Number(bike.purchasePrice) || 0;
-      returnedRepairCosts += (Number(sale.totalRepairCost) !== undefined && !isNaN(Number(sale.totalRepairCost)))
-        ? Number(sale.totalRepairCost)
-        : bikeOtherCost;
+      const saleAmount = Number(sale.saleAmount) || 0;
+      totalSalesRevenue += saleAmount;
 
-      if (sale.saleMethod === 'Finance') {
+      const isFinance = sale.saleMethod === 'Finance';
+      const financeAmount = isFinance ? (Number(sale.financeAmount) || 0) : 0;
+      const commissionRate = isFinance ? (Number(sale.financeCommissionRate) ?? 0.03) : 0;
+      const financeCommission = isFinance
+        ? (Number(sale.financeCommission) || Number((financeAmount * commissionRate).toFixed(2)) || 0)
+        : 0;
+
+      const cashReceived = Number(sale.totalCashReceived) || (saleAmount + (isFinance ? financeCommission : 0));
+
+      const netProfit = (sale.netProfit !== undefined && !isNaN(Number(sale.netProfit)))
+        ? Number(sale.netProfit)
+        : (cashReceived - vehicleTotalCost);
+
+      totalNetProfit += netProfit;
+      totalCashInflow += cashReceived;
+
+      // When sold, both purchase cost and additional expenses are returned to capital from inventory
+      returnedPurchaseCosts += purchaseCost;
+      returnedRepairCosts += otherCosts;
+
+      if (isFinance) {
         financeSalesCount++;
-        totalFinanceAmount += sale.financeAmount;
-        totalFinanceCommission += sale.financeCommission;
+        totalFinanceAmount += financeAmount;
+        totalFinanceCommission += financeCommission;
       } else {
         cashSalesCount++;
       }
     } else {
       inStockCount++;
-      totalInventoryCost += bikeTotalCost;
+      totalInventoryCost += vehicleTotalCost;
     }
   });
 
@@ -187,7 +206,7 @@ export const calculateFinancialSummary = (bikes: Bike[], startingCapital = 0): F
     totalBikesSold: soldCount,
     totalBikesInventoryCount: bikes.length,
     startingCapital: normalizedStartingCapital,
-    currentAvailableCapital: normalizedStartingCapital - totalOutflows + totalReturnedCosts + totalNetProfit,
+    currentAvailableCapital: normalizedStartingCapital - totalInventoryCost + totalNetProfit,
     totalRealizedProfit: totalNetProfit,
     totalPurchaseCost,
     totalRepairCost,
@@ -255,6 +274,7 @@ export const calculateMonthlySummary = (
   let totalVehicleCost = 0;
   let totalDownPayments = 0;
   let totalFinanceAmount = 0;
+  let totalFinanceCommission = 0;
   let totalExpenses = 0;
   let cashSales = 0;
   let financeSales = 0;
@@ -272,8 +292,10 @@ export const calculateMonthlySummary = (
     }
 
     const saleAmount = Number(sale.saleAmount) || 0;
-    const vehicleCost = Number(sale.purchasePrice ?? b.purchasePrice) || 0;
-    const repairCost = Number(sale.totalRepairCost) || calculateTotalOtherCosts(b.repairCosts);
+    const vehicleCost = Number(sale.purchasePrice) || Number(b.purchasePrice) || 0;
+    const repairCost = (b.repairCosts && b.repairCosts.length > 0)
+      ? calculateTotalOtherCosts(b.repairCosts)
+      : (Number(sale.totalRepairCost) || 0);
 
     totalSalesRevenue += saleAmount;
     totalVehicleCost += vehicleCost;
@@ -282,8 +304,11 @@ export const calculateMonthlySummary = (
     if (sale.saleMethod === 'Finance') {
       financeSalesCount++;
       financeSales += saleAmount;
+      const finAmount = Number(sale.financeAmount) || 0;
+      const finCommission = Number(sale.financeCommission) || Number((finAmount * (Number(sale.financeCommissionRate) || 0.03)).toFixed(2)) || 0;
       totalDownPayments += Number(sale.customerDeposit) || 0;
-      totalFinanceAmount += Number(sale.financeAmount) || 0;
+      totalFinanceAmount += finAmount;
+      totalFinanceCommission += finCommission;
     } else {
       cashSalesCount++;
       cashSales += saleAmount;
@@ -295,8 +320,8 @@ export const calculateMonthlySummary = (
   // Gross Profit = Total Sales Revenue − Total Vehicle Cost
   const grossProfit = totalSalesRevenue - totalVehicleCost;
   
-  // Net Profit = Gross Profit − Total Expenses
-  const netProfit = grossProfit - totalExpenses;
+  // Net Profit = (Gross Profit + Total Finance Commission) − Total Expenses
+  const netProfit = (grossProfit + totalFinanceCommission) - totalExpenses;
 
   const grossMarginPercent = totalSalesRevenue > 0 ? (grossProfit / totalSalesRevenue) * 100 : 0;
   const netMarginPercent = totalSalesRevenue > 0 ? (netProfit / totalSalesRevenue) * 100 : 0;
@@ -312,6 +337,7 @@ export const calculateMonthlySummary = (
     totalVehicleCost,
     totalDownPayments,
     totalFinanceAmount,
+    totalFinanceCommission,
     totalExpenses,
     grossProfit,
     netProfit,

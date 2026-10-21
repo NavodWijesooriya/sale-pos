@@ -144,6 +144,7 @@ export interface MonthlySummary {
   totalVehicleCost: number;   // Purchase/cost price of all vehicles sold during selected month
   totalDownPayments: number;  // Down payments collected for finance sales during selected month
   totalFinanceAmount: number; // Financed amount for finance sales during selected month
+  totalFinanceCommission: number; // Finance commissions earned during selected month
   totalExpenses: number;      // Additional business expenses during selected month (transport, repairs, reg, etc.)
   grossProfit: number;        // Total Sales Revenue − Total Vehicle Cost
   netProfit: number;          // Gross Profit − Total Expenses

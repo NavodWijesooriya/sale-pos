@@ -179,7 +179,7 @@ export const SaleModal: React.FC = () => {
       saleAmount: Number(saleAmount),
       purchasePrice: costPrice,
       totalRepairCost: totalOtherCosts,
-      totalCost,
+      totalCost: financials.totalCost,
       financeAmount: saleMethod === 'Finance' ? financials.financeAmount : 0,
       financeCommissionRate: saleMethod === 'Finance' ? 0.03 : 0,
       financeCommission: financials.financeCommission,

@@ -189,6 +189,7 @@ export const MonthlySummaryView: React.FC = () => {
         acc.financeSales += m.financeSales;
         acc.totalDownPayments += m.totalDownPayments;
         acc.totalFinanceAmount += m.totalFinanceAmount;
+        acc.totalFinanceCommission += m.totalFinanceCommission;
         return acc;
       },
       {
@@ -201,7 +202,8 @@ export const MonthlySummaryView: React.FC = () => {
         cashSales: 0,
         financeSales: 0,
         totalDownPayments: 0,
-        totalFinanceAmount: 0
+        totalFinanceAmount: 0,
+        totalFinanceCommission: 0
       }
     );
   }, [monthlyComparisons]);
