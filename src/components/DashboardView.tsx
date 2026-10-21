@@ -133,7 +133,7 @@ export const DashboardView: React.FC = () => {
           onClick={() => setActiveTab('inventory')}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setActiveTab('inventory')}
           className="group cursor-pointer rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-sky-500/50 focus-visible:border-sky-400 p-4 sm:p-5 transition-all duration-300 hover:shadow-xl hover:shadow-sky-500/10 flex flex-col justify-between h-full"
-          aria-label={`View Bikes Inventory: ${summary.totalBikesInStock} in stock`}
+          aria-label={`View Vehicles Inventory: ${summary.totalBikesInStock} in stock`}
         >
           <div className="flex items-center justify-between h-11 shrink-0">
             <div className="w-11 h-11 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 group-hover:scale-110 transition-transform">
@@ -145,7 +145,7 @@ export const DashboardView: React.FC = () => {
           </div>
           <div className="mt-4 flex-1 flex flex-col justify-between">
             <div>
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Bikes In Stock</span>
+              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Vehicles In Stock</span>
               <div className="flex items-baseline gap-2 mt-1 h-9">
                 <span className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight leading-none">{summary.totalBikesInStock}</span>
                 <span className="text-xs text-slate-400 font-medium">units available</span>
@@ -159,7 +159,7 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
 
-        {/* Total Bikes Sold */}
+        {/* Total Vehicles Sold */}
         <div 
           role="button"
           tabIndex={0}
@@ -178,7 +178,7 @@ export const DashboardView: React.FC = () => {
           </div>
           <div className="mt-4 flex-1 flex flex-col justify-between">
             <div>
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Bikes Sold</span>
+              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Vehicles Sold</span>
               <div className="flex items-baseline gap-2 mt-1 h-9">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight leading-none">{summary.totalBikesSold}</span>
                 <span className="text-xs text-slate-400 font-medium">completed transactions</span>

@@ -37,7 +37,7 @@ export const Header: React.FC = () => {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'inventory', label: 'Bikes Inventory', icon: Warehouse, count: summary.totalBikesInStock },
+    { id: 'inventory', label: 'Vehicles Inventory', icon: Warehouse, count: summary.totalBikesInStock },
     { id: 'sales', label: 'Sales & Commissions', icon: ReceiptText, count: summary.totalBikesSold },
     { id: 'summary', label: 'Summary', icon: BarChart3 },
   ];

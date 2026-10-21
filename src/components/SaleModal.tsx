@@ -73,6 +73,32 @@ export const SaleModal: React.FC = () => {
     setCurrentBikeId(initialBike?.id || '');
   }, [isSaleModalOpen, selectedBike?.id]);
 
+  // The modal stays mounted between sales, so wipe every field whenever a new sale is started
+  // to guarantee no customer, guarantor, or finance data carries over from the previous sale.
+  useEffect(() => {
+    if (!isSaleModalOpen) return;
+    setSaleMethod('Cash');
+    setSaleDate(new Date().toISOString().split('T')[0]);
+    setSaleAmount('');
+    setFinanceAmount('');
+    setCustomerName('');
+    setCustomerAddress('');
+    setCustomerPhone('');
+    setCustomerIdNumber('');
+    setCustomerSecondaryPhone('');
+    setCustomerEmail('');
+    setGuarantorName('');
+    setGuarantorAddress('');
+    setGuarantorPhone('');
+    setGuarantorIdNumber('');
+    setFinanceProvider('Commercial Leasing & Finance');
+    setFinanceAgreementNumber(`WM-FIN-${Date.now().toString().slice(-6)}`);
+    setFinanceTermMonths(36);
+    setNotes('');
+    setFormError('');
+    setIsSaving(false);
+  }, [isSaleModalOpen]);
+
   useEffect(() => {
     setSaleAmount('');
     setFinanceAmount('');
@@ -251,7 +277,7 @@ export const SaleModal: React.FC = () => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} autoComplete="off" className="p-4 sm:p-6 space-y-6 max-h-[80vh] overflow-y-auto">
           {/* Accessible Form Error Alert */}
           {formError && (
             <div 

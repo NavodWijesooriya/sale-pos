@@ -38,10 +38,10 @@ export const MobileNav: React.FC = () => {
             activeTab === 'inventory' ? 'text-sky-400 font-bold' : 'text-slate-300 hover:text-white'
           }`}
           aria-current={activeTab === 'inventory' ? 'page' : undefined}
-          aria-label={`Bikes Inventory (${summary.totalBikesInStock} in stock)`}
+          aria-label={`Vehicle Inventory (${summary.totalBikesInStock} in stock)`}
         >
           <Warehouse className={`w-5 h-5 ${activeTab === 'inventory' ? 'stroke-[2.5]' : ''}`} aria-hidden="true" />
-          <span className="text-[11px] tracking-tight mt-0.5">Bikes</span>
+          <span className="text-[11px] tracking-tight mt-0.5">Vehicles</span>
           {summary.totalBikesInStock > 0 && (
             <span className="absolute top-1 right-2 min-w-[16px] h-4 px-1 bg-sky-500 text-slate-950 rounded-full text-[9px] font-black flex items-center justify-center tabular-nums shadow-sm">
               {summary.totalBikesInStock}
