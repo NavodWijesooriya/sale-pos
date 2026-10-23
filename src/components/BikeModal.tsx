@@ -417,6 +417,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                   min="1980"
                   max={new Date().getFullYear() + 1}
                   value={year}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setYear(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500 font-mono"
                 />
@@ -500,6 +501,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                         min="0"
                         placeholder="e.g. 15000"
                         value={mileage}
+                        onWheel={(e) => e.currentTarget.blur()}
                         onChange={(e) => setMileage(e.target.value === '' ? '' : Number(e.target.value))}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
                       />
@@ -513,6 +515,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                         max="2500"
                         placeholder="e.g. 125, 150, 250"
                         value={engineCapacityCc}
+                        onWheel={(e) => e.currentTarget.blur()}
                         onChange={(e) => setEngineCapacityCc(e.target.value === '' ? '' : Number(e.target.value))}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
                       />
@@ -616,6 +619,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                     step="1000"
                     placeholder="e.g. 750000"
                     value={costPrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setCostPrice(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-12 pr-3 py-2.5 text-sm text-white font-mono font-black outline-none focus:border-emerald-500"
                   />
@@ -642,6 +646,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                     step="1000"
                     placeholder="e.g. 950000"
                     value={targetSalePrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setTargetSalePrice(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-12 pr-3 py-2.5 text-sm text-white font-mono font-black outline-none focus:border-sky-500"
                   />
@@ -739,6 +744,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                   min=""
                   step="100"
                   value={newCostAmount}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => {
                     setNewCostAmount(e.target.value === '' ? '' : Number(e.target.value));
                     setCostError('');

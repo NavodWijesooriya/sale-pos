@@ -17,6 +17,25 @@ if ('serviceWorker' in navigator && import.meta.env.DEV) {
   });
 }
 
+// Prevent mouse wheel from accidentally incrementing or decrementing number inputs across the entire application
+if (typeof window !== 'undefined') {
+  document.addEventListener(
+    'wheel',
+    (event) => {
+      const target = event.target;
+      if (target instanceof HTMLInputElement && target.type === 'number') {
+        target.blur();
+      } else if (
+        document.activeElement instanceof HTMLInputElement &&
+        document.activeElement.type === 'number'
+      ) {
+        document.activeElement.blur();
+      }
+    },
+    { capture: true, passive: true }
+  );
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

@@ -382,6 +382,7 @@ export const SaleModal: React.FC = () => {
                   min="0"
                   step="1000"
                   value={saleAmount}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => {
                     const rawValue = e.target.value;
                     const newAmount = rawValue === '' ? '' : Number(rawValue);
@@ -439,6 +440,7 @@ export const SaleModal: React.FC = () => {
                       max={saleAmount === '' ? undefined : Number(saleAmount) || undefined}
                       step="1000"
                       value={financeAmount}
+                      onWheel={(e) => e.currentTarget.blur()}
                       onChange={(e) => {
                         const rawValue = e.target.value;
                         setFinanceAmount(rawValue === '' ? '' : Number(rawValue));
@@ -488,6 +490,7 @@ export const SaleModal: React.FC = () => {
                     min="1"
                     max="84"
                     value={financeTermMonths}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setFinanceTermMonths(Number(e.target.value) || 36)}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white font-mono outline-none"
                   />

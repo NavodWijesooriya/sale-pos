@@ -1171,6 +1171,7 @@ export const MonthlySummaryView: React.FC = () => {
                     id="sim-cost-price"
                     type="number"
                     value={simPurchasePrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setSimPurchasePrice(Number(e.target.value) || 0)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 min-h-[44px] text-sm sm:text-base font-mono text-white focus:outline-none focus:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-400"
                   />
@@ -1184,6 +1185,7 @@ export const MonthlySummaryView: React.FC = () => {
                     id="sim-repair-cost"
                     type="number"
                     value={simRepairCost}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setSimRepairCost(Number(e.target.value) || 0)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 min-h-[44px] text-sm sm:text-base font-mono text-white focus:outline-none focus:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-400"
                   />
@@ -1197,6 +1199,7 @@ export const MonthlySummaryView: React.FC = () => {
                     id="sim-sale-amount"
                     type="number"
                     value={simSaleAmount}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setSimSaleAmount(Number(e.target.value) || 0)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 min-h-[44px] text-sm sm:text-base font-mono text-white focus:outline-none focus:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-400"
                   />
@@ -1210,6 +1213,7 @@ export const MonthlySummaryView: React.FC = () => {
                     id="sim-finance-amount"
                     type="number"
                     value={simFinanceAmount}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setSimFinanceAmount(Number(e.target.value) || 0)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 min-h-[44px] text-sm sm:text-base font-mono text-white focus:outline-none focus:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-400"
                   />

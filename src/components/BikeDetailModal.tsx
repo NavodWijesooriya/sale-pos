@@ -390,6 +390,7 @@ export const BikeDetailModal: React.FC = () => {
                       min="1"
                       step="50"
                       value={costAmount}
+                      onWheel={(e) => e.currentTarget.blur()}
                       onChange={(e) => setCostAmount(e.target.value === '' ? '' : Number(e.target.value))}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white font-mono font-bold outline-none"
                     />

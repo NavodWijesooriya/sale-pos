@@ -262,6 +262,7 @@ export const SettingsView: React.FC = () => {
               step="any"
               required
               value={startingCapital}
+              onWheel={(e) => e.currentTarget.blur()}
               onChange={(e) => setStartingCapital(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm text-white outline-none focus:border-sky-500 font-mono focus-visible:ring-2 focus-visible:ring-sky-400"
             />
