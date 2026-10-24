@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      // Allow read access to authenticated users
+      allow read: if request.auth != null;
+      // Allow users to upload, edit, and delete photos in their own directory
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

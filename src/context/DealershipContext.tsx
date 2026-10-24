@@ -456,7 +456,11 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
         vehicleType: bike.vehicleType || 'Bike',
         registration: bike.regPlate,
         vin: bike.vin,
-        imageUrl: bike.imageUrl
+        imageUrl: (bike.imageUrls && bike.imageUrls[0]) || bike.imageUrl || '',
+        imageUrls: bike.imageUrls || (bike.imageUrl ? [bike.imageUrl] : []),
+        supplierName: bike.supplierName || bike.supplierOrSeller || '',
+        supplierAddress: bike.supplierAddress || '',
+        supplierPhone: bike.supplierPhone || ''
       },
       sale: { ...sale, ownerUid: user.uid },
       paymentStatus: sale.saleMethod === 'Cash' ? 'paid' : 'financed',
@@ -552,12 +556,16 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
       condition: data.condition || 'Used',
       purchasePrice: costPrice,
       purchaseDate: data.purchaseDate || new Date().toISOString().split('T')[0],
-      supplierOrSeller: data.supplierOrSeller?.trim() || 'Direct Purchase',
+      supplierOrSeller: data.supplierName?.trim() || data.supplierOrSeller?.trim() || 'Direct Purchase',
+      supplierName: data.supplierName?.trim() || data.supplierOrSeller?.trim() || '',
+      supplierAddress: data.supplierAddress?.trim() || '',
+      supplierPhone: data.supplierPhone?.trim() || '',
       repairCosts: otherCosts,
       totalCost,
       targetSalePrice,
       status: 'In Stock',
-      imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
+      imageUrl: (data.imageUrls && data.imageUrls[0]) || data.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
+      imageUrls: data.imageUrls && data.imageUrls.length > 0 ? data.imageUrls : (data.imageUrl ? [data.imageUrl] : []),
       notes: data.notes || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -592,6 +600,12 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
       purchasePrice: newCostPrice,
       repairCosts: newOtherCosts,
       totalCost: newTotalCost,
+      supplierOrSeller: updates.supplierName?.trim() || updates.supplierOrSeller?.trim() || bike.supplierName || bike.supplierOrSeller,
+      supplierName: updates.supplierName !== undefined ? updates.supplierName.trim() : bike.supplierName,
+      supplierAddress: updates.supplierAddress !== undefined ? updates.supplierAddress.trim() : bike.supplierAddress,
+      supplierPhone: updates.supplierPhone !== undefined ? updates.supplierPhone.trim() : bike.supplierPhone,
+      imageUrl: (updates.imageUrls && updates.imageUrls[0]) || updates.imageUrl || bike.imageUrl,
+      imageUrls: updates.imageUrls !== undefined ? updates.imageUrls : bike.imageUrls,
       updatedAt: new Date().toISOString()
     };
 
@@ -707,7 +721,11 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
         vehicleType: bike.vehicleType || 'Bike',
         registration: bike.regPlate,
         vin: bike.vin,
-        imageUrl: bike.imageUrl
+        imageUrl: (bike.imageUrls && bike.imageUrls[0]) || bike.imageUrl || '',
+        imageUrls: bike.imageUrls || (bike.imageUrl ? [bike.imageUrl] : []),
+        supplierName: bike.supplierName || bike.supplierOrSeller || '',
+        supplierAddress: bike.supplierAddress || '',
+        supplierPhone: bike.supplierPhone || ''
       },
       sale: persistedSale,
       paymentStatus: newSale.saleMethod === 'Cash' ? 'paid' : 'financed',

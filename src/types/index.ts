@@ -47,8 +47,8 @@ export interface SaleRecord {
   
   // Finance specific fields
   financeAmount: number;
-  financeCommissionRate: number; // 0.03 for 
-  financeCommission: number; //  of financeAmount
+  financeCommissionRate: number; // 0.03 for 3%
+  financeCommission: number; // 3% of financeAmount
   customerDeposit: number;
   
   // Summary outputs
@@ -103,12 +103,16 @@ export interface Bike {
   purchasePrice: number; // Cost Price
   purchaseDate: string;
   supplierOrSeller: string;
+  supplierName?: string;
+  supplierAddress?: string;
+  supplierPhone?: string;
   repairCosts: OtherCostItem[]; // Additional expenses / Other Costs
   totalCost: number; // Cost Price + Other Costs
   
   targetSalePrice: number; // Selling Price / Target Selling Price
   status: BikeStatus;
   imageUrl: string;
+  imageUrls?: string[];
   notes?: string;
   
   sale?: SaleRecord;

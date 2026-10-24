@@ -15,9 +15,11 @@ import {
   Receipt,
   TrendingUp,
   Sparkles,
-  Bike as BikeIcon
+  Bike as BikeIcon,
+  Tag
 } from 'lucide-react';
 import { formatCurrency, formatNumber, calculateTotalOtherCosts } from '../utils/formatters';
+import { matchesVehicleNumber } from '../utils/plateSearch';
 import { useAuth } from '../../context/AuthContext';
 
 export const InventoryView: React.FC = () => {
@@ -34,6 +36,7 @@ export const InventoryView: React.FC = () => {
     setActiveTab
   } = useDealership();
 
+  const [plateSearchQuery, setPlateSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -63,14 +66,19 @@ export const InventoryView: React.FC = () => {
 
   const filteredBikes = useMemo(() => {
     return visibleBikes.filter((bike) => {
+      const matchesPlate = !plateSearchQuery.trim() || matchesVehicleNumber(bike.regPlate, plateSearchQuery);
+
       const query = searchQuery.toLowerCase().trim();
       const matchesSearch = 
         !query ||
+        matchesVehicleNumber(bike.regPlate, query) ||
         bike.id.toLowerCase().includes(query) ||
         bike.make.toLowerCase().includes(query) ||
         bike.model.toLowerCase().includes(query) ||
+        (bike.vehicleType && bike.vehicleType.toLowerCase().includes(query)) ||
         bike.vin.toLowerCase().includes(query) ||
         bike.regPlate.toLowerCase().includes(query) ||
+        bike.condition.toLowerCase().includes(query) ||
         bike.year.toString().includes(query) ||
         (isAdmin && [bike.ownerUid, bike.createdBy, bike.createdByName, bike.createdByEmail]
           .some((value) => value?.toLowerCase().includes(query)));
@@ -85,7 +93,7 @@ export const InventoryView: React.FC = () => {
       const matchesCreatedFrom = !isAdmin || !createdFrom || createdDate >= createdFrom;
       const matchesCreatedTo = !isAdmin || !createdTo || createdDate <= createdTo;
 
-      return matchesSearch && matchesCategory && matchesStatus && matchesOwner && matchesCreatedFrom && matchesCreatedTo;
+      return matchesPlate && matchesSearch && matchesCategory && matchesStatus && matchesOwner && matchesCreatedFrom && matchesCreatedTo;
     }).sort((a, b) => {
       if (sortBy === 'newest') {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -106,7 +114,7 @@ export const InventoryView: React.FC = () => {
       }
       return 0;
     });
-  }, [visibleBikes, searchQuery, categoryFilter, statusFilter, ownerFilter, createdFrom, createdTo, sortBy, isAdmin]);
+  }, [visibleBikes, plateSearchQuery, searchQuery, categoryFilter, statusFilter, ownerFilter, createdFrom, createdTo, sortBy, isAdmin]);
 
   const [bikeToDelete, setBikeToDelete] = useState<Bike | null>(null);
   const [isDeletingBike, setIsDeletingBike] = useState(false);
@@ -180,27 +188,62 @@ export const InventoryView: React.FC = () => {
 
       {/* Filters and Search Bar */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3.5 shadow-lg">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
-          <div className="sm:col-span-2 lg:col-span-5 relative">
+        {/* Dedicated Vehicle Number Search + Secondary Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div className="md:col-span-6 relative">
+            <Tag className="w-4 h-4 text-sky-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+            <input
+              type="text"
+              value={plateSearchQuery}
+              onChange={(e) => setPlateSearchQuery(e.target.value)}
+              placeholder="Search by Vehicle Number (e.g. WP CA-1234, 65-4321, UNREG)..."
+              aria-label="Search by Vehicle Registration Number"
+              className="w-full bg-slate-950 border border-sky-500/40 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/30 rounded-xl pl-10 pr-8 py-2.5 min-h-[44px] text-xs sm:text-sm text-white placeholder-slate-400 outline-none transition-all font-mono font-bold"
+            />
+            {plateSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setPlateSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-1"
+                aria-label="Clear vehicle number search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="md:col-span-6 relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isAdmin ? 'Search item ID, vehicle, creator, or user UID...' : 'Search make, model, registration plate, VIN...'}
-              aria-label={isAdmin ? 'Search records by ID, vehicle, creator, or user UID' : 'Search vehicles by make, model, plate, or VIN'}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 rounded-xl pl-10 pr-4 py-2.5 min-h-[44px] text-xs sm:text-sm text-white placeholder-slate-500 outline-none transition-all font-medium"
+              placeholder={isAdmin ? 'Filter ID, model, creator, or UID...' : 'Filter by brand, model, vehicle type, or condition...'}
+              aria-label={isAdmin ? 'Search records by ID, vehicle, creator, or user UID' : 'Search vehicles by make, model, type, or condition'}
+              className="w-full bg-slate-950 border border-slate-800 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 rounded-xl pl-10 pr-8 py-2.5 min-h-[44px] text-xs sm:text-sm text-white placeholder-slate-500 outline-none transition-all font-medium"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-1"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
+        </div>
 
-          <div className="sm:col-span-1 lg:col-span-3 flex items-center bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 min-h-[44px] text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 pt-1">
+          <div className="sm:col-span-1 lg:col-span-4 flex items-center bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 min-h-[44px] text-xs">
             <span className="flex items-center gap-2 font-bold text-sky-400">
               <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse" aria-hidden="true" />
               Active Showroom Stock: <strong className="text-white font-mono text-sm">{inStockBikes.length}</strong>
             </span>
           </div>
 
-          <div className="sm:col-span-1 lg:col-span-2">
+          <div className="sm:col-span-1 lg:col-span-4">
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
@@ -213,7 +256,7 @@ export const InventoryView: React.FC = () => {
             </select>
           </div>
 
-          <div className="sm:col-span-2 lg:col-span-2">
+          <div className="sm:col-span-2 lg:col-span-4">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
@@ -278,10 +321,11 @@ export const InventoryView: React.FC = () => {
               </button>
             )}
           </div>
-          {(searchQuery || categoryFilter !== 'All' || statusFilter !== 'All' || ownerFilter !== 'All' || createdFrom || createdTo) && (
+          {(plateSearchQuery || searchQuery || categoryFilter !== 'All' || statusFilter !== 'All' || ownerFilter !== 'All' || createdFrom || createdTo) && (
             <button
               type="button"
               onClick={() => {
+                setPlateSearchQuery('');
                 setSearchQuery('');
                 setCategoryFilter('All');
                 setStatusFilter('All');
@@ -317,14 +361,14 @@ export const InventoryView: React.FC = () => {
                 {/* Photo & Status */}
                 <div className="relative h-44 w-full bg-slate-950 overflow-hidden">
                   <img
-                    src={bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'}
+                    src={(bike.imageUrls && bike.imageUrls[0]) || bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'}
                     alt={`${bike.make} ${bike.model}`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
 
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                  <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
                     <span className={`px-2.5 py-1 rounded-full text-[11px] font-black tracking-wide shadow-md ${
                       isSold 
                         ? 'bg-emerald-500 text-slate-950' 
@@ -332,13 +376,16 @@ export const InventoryView: React.FC = () => {
                     }`}>
                       {bike.status.toUpperCase()}
                     </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-950/80 backdrop-blur-md text-sky-300 border border-slate-700">
+                      {bike.vehicleType || 'Vehicle'}
+                    </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-950/80 backdrop-blur-md text-slate-300 border border-slate-700">
                       {bike.category}
                     </span>
                   </div>
 
-                  {isSold && bike.sale && (
-                    <div className="absolute top-3 right-3">
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    {isSold && bike.sale && (
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border shadow-md ${
                         bike.sale.saleMethod === 'Finance'
                           ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 backdrop-blur-md'
@@ -346,8 +393,12 @@ export const InventoryView: React.FC = () => {
                       }`}>
                         {bike.sale.saleMethod.toUpperCase()} SALE
                       </span>
-                    </div>
-                  )}
+                    )}
+                    <span className="px-2.5 py-1 rounded-md text-xs font-black tracking-wider shadow-lg bg-slate-950/90 text-sky-300 border border-sky-400/50 backdrop-blur-md font-mono flex items-center gap-1">
+                      <span className="text-[9px] uppercase font-bold text-slate-400">NO:</span>
+                      <span>{bike.regPlate}</span>
+                    </span>
+                  </div>
 
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-300 font-medium">
                     <span className="bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 text-slate-300 text-[11px]">
@@ -362,6 +413,15 @@ export const InventoryView: React.FC = () => {
                 {/* Content */}
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black font-mono tracking-wider bg-sky-500/15 text-sky-300 border border-sky-500/40 shadow-sm">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">NO:</span>
+                        {bike.regPlate}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                        {bike.condition}
+                      </span>
+                    </div>
                     <h3 
                       onClick={() => openDetailModalForBike(bike)}
                       className="text-base font-black text-white hover:text-sky-400 cursor-pointer transition-colors leading-tight truncate"
@@ -370,7 +430,9 @@ export const InventoryView: React.FC = () => {
                       {bike.year} {bike.make} {bike.model}
                     </h3>
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-mono">
-                      <span>Plate: <strong className="text-slate-200">{bike.regPlate}</strong></span>
+                      <span>Brand: <strong className="text-slate-200">{bike.make}</strong></span>
+                      <span>•</span>
+                      <span>Type: <strong className="text-slate-200">{bike.vehicleType || 'Vehicle'}</strong></span>
                       {bike.mileage > 0 && (
                         <>
                           <span>•</span>
@@ -506,15 +568,16 @@ export const InventoryView: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/70 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
                 <tr>
-                  <th className="py-3 px-4 sm:px-6">Vehicle</th>
-                  <th className="py-3 px-4">Specs & Plate</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Cost Price</th>
-                  <th className="py-3 px-4 text-right">Other Costs</th>
-                  <th className="py-3 px-4 text-right">Total Cost</th>
-                  <th className="py-3 px-4 text-right">Selling Price</th>
-                  <th className="py-3 px-4 text-right">Profit</th>
-                  <th className="py-3 px-4 sm:px-6 text-center">Actions</th>
+                  <th className="py-3 px-3 sm:px-4">Photo</th>
+                  <th className="py-3 px-3">Vehicle Number</th>
+                  <th className="py-3 px-3">Type</th>
+                  <th className="py-3 px-3 sm:px-4">Brand & Model</th>
+                  <th className="py-3 px-3">Condition</th>
+                  <th className="py-3 px-3 text-right">Cost Price</th>
+                  <th className="py-3 px-3 text-right">Total Cost</th>
+                  <th className="py-3 px-3 text-right">Selling Price</th>
+                  <th className="py-3 px-3 text-right">Profit</th>
+                  <th className="py-3 px-3 sm:px-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-medium">
@@ -522,53 +585,64 @@ export const InventoryView: React.FC = () => {
                   const isSold = bike.status === 'Sold';
                   const otherCostsTotal = calculateTotalOtherCosts(bike.repairCosts);
                   const netProfit = isSold && bike.sale ? bike.sale.netProfit : (bike.targetSalePrice - bike.totalCost);
+                  const thumb = (bike.imageUrls && bike.imageUrls[0]) || bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80';
 
                   return (
                     <tr key={bike.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-3.5 px-4 sm:px-6">
+                      <td className="py-2.5 px-3 sm:px-4">
+                        <img
+                          src={thumb}
+                          alt=""
+                          onClick={() => openDetailModalForBike(bike)}
+                          className="w-12 h-9 rounded-lg object-cover border border-slate-800 cursor-pointer hover:opacity-80 transition-opacity"
+                        />
+                      </td>
+
+                      <td className="py-2.5 px-3 font-mono">
+                        <span className="font-bold text-sky-300 bg-sky-500/15 px-2 py-0.5 rounded border border-sky-500/30 text-[11px]">
+                          {bike.regPlate}
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-3">
+                        <span className="text-slate-300 font-bold text-[11px]">
+                          {bike.vehicleType || 'Bike'}
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-3 sm:px-4">
                         <div 
                           onClick={() => openDetailModalForBike(bike)}
                           className="font-bold text-white hover:text-sky-400 cursor-pointer"
                         >
                           {bike.year} {bike.make} {bike.model}
                         </div>
-                        <div className="text-[10px] text-slate-400">{bike.category}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{bike.engineCapacityCc}cc • {bike.category}</div>
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono">
-                        <div className="text-slate-200 font-bold">{bike.regPlate}</div>
-                        <div className="text-[10px] text-slate-400">{bike.engineCapacityCc}cc</div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isSold ? 'bg-emerald-500/20 text-emerald-300' : 'bg-sky-500/20 text-sky-400'
-                        }`}>
-                          {bike.status}
+                      <td className="py-2.5 px-3">
+                        <span className="text-amber-400 font-bold text-[11px]">
+                          {bike.condition}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono text-slate-300">
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-300">
                         {formatCurrency(bike.purchasePrice, symbol)}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono text-amber-400">
-                        +{formatCurrency(otherCostsTotal, symbol)}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-white">
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-white">
                         {formatCurrency(bike.totalCost, symbol)}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-black text-sky-400">
+                      <td className="py-2.5 px-3 text-right font-mono font-black text-sky-400">
                         {isSold && bike.sale ? formatCurrency(bike.sale.saleAmount, symbol) : formatCurrency(bike.targetSalePrice, symbol)}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-400">
+                      <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-400">
                         +{formatCurrency(netProfit, symbol)}
                       </td>
 
-                      <td className="py-3.5 px-4 sm:px-6 text-center">
+                      <td className="py-2.5 px-3 sm:px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"

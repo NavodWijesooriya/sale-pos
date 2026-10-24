@@ -270,7 +270,7 @@ export const DashboardView: React.FC = () => {
                     {/* Image Section */}
                     <div className="relative h-44 w-full bg-slate-950 overflow-hidden">
                       <img 
-                        src={bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'} 
+                        src={(bike.imageUrls && bike.imageUrls[0]) || bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'} 
                         alt={`${bike.make} ${bike.model}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
@@ -283,6 +283,13 @@ export const DashboardView: React.FC = () => {
                         </span>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-950/80 backdrop-blur-md text-slate-300 border border-slate-700">
                           {bike.category}
+                        </span>
+                      </div>
+
+                      <div className="absolute top-3 right-3">
+                        <span className="px-2.5 py-1 rounded-md text-xs font-black tracking-wider shadow-lg bg-slate-950/90 text-sky-300 border border-sky-400/50 backdrop-blur-md font-mono flex items-center gap-1">
+                          <span className="text-[9px] uppercase font-bold text-slate-400">NO:</span>
+                          <span>{bike.regPlate}</span>
                         </span>
                       </div>
 
@@ -299,6 +306,15 @@ export const DashboardView: React.FC = () => {
                     {/* Content */}
                     <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                       <div>
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black font-mono tracking-wider bg-sky-500/15 text-sky-300 border border-sky-500/40 shadow-sm">
+                            <span className="text-[10px] uppercase font-bold text-slate-400">NO:</span>
+                            {bike.regPlate}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                            {bike.condition}
+                          </span>
+                        </div>
                         <h3 
                           onClick={() => openDetailModalForBike(bike)}
                           className="text-base font-black text-white hover:text-sky-400 cursor-pointer transition-colors leading-tight truncate"
@@ -307,7 +323,7 @@ export const DashboardView: React.FC = () => {
                           {bike.year} {bike.make} {bike.model}
                         </h3>
                         <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-mono">
-                          <span>Plate: <strong className="text-slate-200">{bike.regPlate}</strong></span>
+                          <span>Brand: <strong className="text-slate-200">{bike.make}</strong></span>
                           {bike.mileage > 0 && (
                             <>
                               <span>•</span>
