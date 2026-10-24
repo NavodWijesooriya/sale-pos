@@ -20,16 +20,18 @@ import { SaleModal } from './components/SaleModal';
 import { BikeDetailModal } from './components/BikeDetailModal';
 import { InvoiceModal } from './components/InvoiceModal';
 import { LoginScreen } from './components/LoginScreen';
+import { PendingApprovalScreen } from './components/PendingApprovalScreen';
 import { BusinessNameSetup } from './components/BusinessNameSetup';
 import { LoadingScreen } from './components/LoadingScreen';
 import { PWAUpdateNotice } from './components/PWAUpdateNotice';
-import { Bike as BikeIcon } from 'lucide-react';
+import { Bike as BikeIcon, RotateCcw } from 'lucide-react';
+import { clearCustomFirebaseConfig, isUsingCustomFirebase } from '@/lib/firebase';
 
 const MainLayout: React.FC = () => {
   const { activeTab, summary, logout, isBusinessDataLoading, businessDataError } = useDealership();
   const { profile } = useAuth();
 
-  if (!profile?.businessName.trim()) return <BusinessNameSetup />;
+  if (!profile?.businessName?.trim()) return <BusinessNameSetup />;
   if (businessDataError) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-950 p-6 text-center text-slate-100">
@@ -117,7 +119,7 @@ const MainLayout: React.FC = () => {
 };
 
 const AuthenticatedApp: React.FC = () => {
-  const { user, profile, approvalStatus, approvalStatusVerified, authError, authNotice, logout } = useAuth();
+  const { user, profile, isAdmin, approvalStatus, approvalStatusVerified, authError, authNotice, logout } = useAuth();
 
   if (!user) {
     return (
@@ -129,44 +131,44 @@ const AuthenticatedApp: React.FC = () => {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-950 p-6 text-center text-slate-100">
         <h1 className="text-2xl font-black">Sales POS</h1>
-        <p role="alert" className="max-w-lg text-sm text-rose-300">{authError}</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-slate-950"
-        >
-          Retry
-        </button>
-        <button type="button" onClick={() => void logout()} className="text-sm font-semibold text-slate-400 hover:text-white">
-          Sign out
-        </button>
+        <p role="alert" className="max-w-md text-sm text-rose-300 leading-relaxed bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">{authError}</p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-xl bg-sky-500 hover:bg-sky-400 px-5 py-2.5 font-bold text-slate-950 text-xs transition-colors"
+          >
+            Retry Connection
+          </button>
+          <button 
+            type="button" 
+            onClick={() => void logout()} 
+            className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+        {isUsingCustomFirebase() && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Reset database to the default hosted Firebase project?')) {
+                clearCustomFirebaseConfig();
+                window.location.reload();
+              }
+            }}
+            className="mt-2 text-xs text-rose-400 hover:text-rose-300 font-bold underline underline-offset-4 flex items-center gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Database to Default Project</span>
+          </button>
+        )}
       </main>
     );
   }
 
-  if (approvalStatus !== 'approved') {
-    const message = !approvalStatusVerified
-      ? 'Checking your latest account approval status...'
-      : approvalStatus === 'pending'
-        ? 'Your registration is pending administrator approval.'
-        : approvalStatus === 'rejected'
-          ? 'Your registration request was not approved. You cannot access the system.'
-          : 'No registration request was found for this account.';
-
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-950 p-6 text-center text-slate-100">
-        <BikeIcon className="h-10 w-10 text-sky-400" aria-hidden="true" />
-        <h1 className="text-2xl font-black">Account approval required</h1>
-        <p role="status" className="max-w-md text-sm text-slate-300">{authNotice || message}</p>
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-slate-950"
-        >
-          Sign out
-        </button>
-      </main>
-    );
+  if (approvalStatus !== 'approved' && !isAdmin) {
+    return <PendingApprovalScreen />;
   }
 
   if (!profile) {

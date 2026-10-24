@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useDealership } from '../context/DealershipContext';
 import { useAuth } from '../../context/AuthContext';
 import { ApprovalRequests } from './ApprovalRequests';
+import { FirebaseConfigModal } from './FirebaseConfigModal';
+import { getActiveFirebaseConfig } from '../../lib/firebase';
 import { 
   Settings as SettingsIcon, 
   Building, 
@@ -11,10 +13,11 @@ import {
   RotateCcw, 
   Moon, 
   Sun, 
-  Check,
-  Trash2,
-  ShieldCheck,
-  LogOut
+  Check, 
+  Trash2, 
+  ShieldCheck, 
+  LogOut,
+  Database
 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
@@ -23,13 +26,16 @@ export const SettingsView: React.FC = () => {
     settings, 
     updateSettings, 
     resetToDefaultData, 
-    clearAllData,
+    clearAllData, 
     exportDataToJson, 
-    importDataFromJson,
-    currentUser,
-    logout,
-    showToast
+    importDataFromJson, 
+    currentUser, 
+    logout, 
+    showToast 
   } = useDealership();
+
+  const { config: activeConfig, isCustom } = getActiveFirebaseConfig();
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,7 +85,7 @@ export const SettingsView: React.FC = () => {
         taxNumber,
         startingCapital: capital,
         currencySymbol,
-        theme
+        theme,
       });
     } catch {
       // The dealership context reports persistence errors to the user.
@@ -126,13 +132,13 @@ export const SettingsView: React.FC = () => {
 
       {isAdmin && <ApprovalRequests />}
 
-      {/* Section 1: Firebase Account */}
+      {/* Section 1: Firebase Account & Database Connection */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-5 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
           <div>
             <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Firebase Account
+              Firebase Account & Security
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               Signed in with Firebase Authentication. Access is enforced by Firestore security rules.
@@ -151,6 +157,43 @@ export const SettingsView: React.FC = () => {
               <span>Log Out</span>
             </button>
           </div>
+        </div>
+
+        {/* Database Connection Pill */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
+              <Database className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white font-mono">
+                  {activeConfig.projectId || 'Default Project'}
+                </span>
+                <span className={`px-2 py-0.2 rounded text-[10px] font-bold ${
+                  isCustom 
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' 
+                    : 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
+                }`}>
+                  {isCustom ? 'Custom Connected Project' : 'Default Hosted Project'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {isCustom
+                  ? 'This terminal is connected directly to your private Google Cloud Firestore project.'
+                  : 'This terminal is using the default hosted Firebase project.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsConfigModalOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 text-xs font-bold border border-slate-700 transition-colors flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Connect / Change Firebase</span>
+          </button>
         </div>
       </div>
 
@@ -450,6 +493,12 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Firebase Database Connection Modal */}
+      <FirebaseConfigModal 
+        isOpen={isConfigModalOpen} 
+        onClose={() => setIsConfigModalOpen(false)} 
+      />
     </div>
   );
 };

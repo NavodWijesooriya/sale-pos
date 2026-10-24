@@ -8,10 +8,13 @@
    firebase deploy --only firestore:rules --project YOUR_PROJECT_ID
    ```
 
-4. Register the first administrator through the website. In Firebase Console, find that account's Authentication UID and its `users/{AUTH_UID}` registration document; set `approvalStatus` to `approved`, then create `userRoles/{AUTH_UID}` with the string field `role: "admin"`. Do not create a shared `admin` identity or let the client edit role documents. The administrator can then approve or reject future requests under **Settings → Registration Requests**. Regular users do not need a role document.
-5. Users register with an email address and password. Their Firestore profile is created with `approvalStatus: "pending"`; only an administrator can change it to `approved` or `rejected`. Approved users must save a business name before the application opens.
+4. Register the administrator through the website. In Firebase Console, find that account's Authentication UID and its `users/{AUTH_UID}` registration document; set `approvalStatus` to `approved`, then create a document in `userRoles/{AUTH_UID}` with the string field `role: "admin"`. Do not create a shared `admin` identity or let the client edit role documents. Regular users do not have or need a `userRoles` document.
+5. New users register on the login page using the **Create Account** tab by entering their **Full Name**, **Business / Dealership Name**, **Email Address**, **Password**, and **Confirm Password**.
+6. The account is created with `approvalStatus: "pending"`. The applicant is blocked from accessing the business dashboard and shown a dedicated **Awaiting Administrator Approval** screen with a live status checker and sign-out button.
+7. The administrator accesses **Settings → Pending Approvals & User Access** to view pending applicants with their name, business name, email, and registration date. Clicking **Approve** or **Reject** displays a confirmation dialog and updates the user's `approvalStatus` to `"approved"` or `"rejected"`.
+8. Once approved, the user's screen unlocks automatically in real time, granting them full isolated access to their dealership POS dashboard.
 
-The registration request is stored at `users/{AUTH_UID}` with `email`, `approvalStatus`, `submittedAt`, `createdAt`, and `updatedAt`. Approval and rejection decisions record `reviewedBy` and `reviewedAt`. Rejected and pending profiles cannot read or write the private dealership data collections, even if the Firebase Authentication account still exists.
+The registration request is stored at `users/{AUTH_UID}` with `name`, `businessName`, `email`, `role: "user"`, `approvalStatus: "pending"`, `submittedAt`, `createdAt`, and `updatedAt`. Approval and rejection decisions record `reviewedBy` and `reviewedAt`. Rejected and pending profiles cannot read or write the private dealership data collections, even if the Firebase Authentication account exists.
 
 ## Data ownership
 
@@ -31,7 +34,7 @@ users/{AUTH_UID}/products/{productId}
 The profile document stores account and business identity. Inventory vehicles and settings are stored in `bikes` and `settings/preferences`; sales, invoice snapshots, and customer snapshots are stored in their own subcollections under the same UID. Related sale and customer details are also retained on the vehicle sale record for existing screens and printed invoices. The Firebase client uses Firestore's persistent IndexedDB cache to retain data for offline PWA launches and synchronize changes with Firestore when connected; Firestore remains the source of truth across devices.
 
 Firestore rules authorize profile and business-data access only when the path UID matches `request.auth.uid`. All user data subcollections under `users/{AUTH_UID}` inherit the approved-account check, so the admin role does not grant access to other users' business records.
-Only admins can list user profiles, which lets the Settings approval queue show pending requests. Each request can be reviewed only once; decisions cannot be changed by the applicant or overwritten from the client.
+Only admins can list user profiles, which lets the Settings approval queue show pending requests. Decisions cannot be changed by the applicant or overwritten from the client.
 
 ## Existing Firestore records
 

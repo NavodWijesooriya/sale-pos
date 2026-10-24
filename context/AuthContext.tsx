@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
+  updateProfile,
   type User
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
@@ -15,12 +16,23 @@ import { LoadingScreen } from '../src/components/LoadingScreen';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'unregistered';
 
 export interface UserProfile {
+  name?: string;
   businessName: string;
   email?: string;
   role: 'admin' | 'user';
   approvalStatus: ApprovalStatus;
   createdAt?: unknown;
   updatedAt?: unknown;
+  submittedAt?: unknown;
+  reviewedBy?: string;
+  reviewedAt?: unknown;
+}
+
+export interface RegisterAccountParams {
+  name: string;
+  businessName: string;
+  email: string;
+  password: string;
 }
 
 interface AuthContextValue {
@@ -33,10 +45,12 @@ interface AuthContextValue {
   authError: string | null;
   authNotice: string | null;
   signIn: (email: string, password: string) => Promise<void>;
-  registerAccount: (email: string, password: string) => Promise<void>;
+  registerAccount: (params: RegisterAccountParams | string, maybePassword?: string) => Promise<void>;
   logout: () => Promise<void>;
   clearAuthNotice: () => void;
   saveBusinessName: (businessName: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  submitPendingRequest: (name?: string, businessName?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -60,7 +74,9 @@ const AuthContext = createContext<AuthContextValue>({
   clearAuthNotice: () => undefined,
   saveBusinessName: async () => {
     throw new Error('Authentication is required to save a business name.');
-  }
+  },
+  refreshProfile: async () => undefined,
+  submitPendingRequest: async () => undefined
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -76,7 +92,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let unsubscribeProfile: (() => void) | undefined;
     let unsubscribeRole: (() => void) | undefined;
-    let accessRevocationRequested = false;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) setLoading(true);
@@ -84,7 +99,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       unsubscribeRole?.();
       unsubscribeProfile = undefined;
       unsubscribeRole = undefined;
-      accessRevocationRequested = false;
       setUser(currentUser);
       setProfile(null);
       setIsAdmin(false);
@@ -107,45 +121,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         doc(db, 'users', currentUser.uid),
         (profileSnapshot) => {
           const data = profileSnapshot.data() || {};
+          const rawStatus = data?.approvalStatus;
           const status: ApprovalStatus = !profileSnapshot.exists()
             ? 'unregistered'
-            : data?.approvalStatus === 'pending' || data?.approvalStatus === 'rejected'
-              ? data.approvalStatus
+            : rawStatus === 'pending' || rawStatus === 'rejected'
+              ? rawStatus
               : 'approved';
 
           setApprovalStatus(status);
           if (!profileSnapshot.metadata.fromCache) setApprovalStatusVerified(true);
           setProfile(profileSnapshot.exists()
             ? {
+                name: typeof data.name === 'string' ? data.name : currentUser.displayName || undefined,
                 businessName: typeof data.businessName === 'string' ? data.businessName : '',
-                email: typeof data.email === 'string' ? data.email : undefined,
+                email: typeof data.email === 'string' ? data.email : currentUser.email || undefined,
                 role: data.role === 'admin' ? 'admin' : 'user',
                 approvalStatus: status,
                 createdAt: data.createdAt,
-                updatedAt: data.updatedAt
+                updatedAt: data.updatedAt,
+                submittedAt: data.submittedAt,
+                reviewedBy: typeof data.reviewedBy === 'string' ? data.reviewedBy : undefined,
+                reviewedAt: data.reviewedAt
               }
             : null);
           profileLoaded = true;
           finishLoading();
-
-          if (
-            !profileSnapshot.metadata.fromCache
-            && (status === 'pending' || status === 'rejected')
-            && !accessRevocationRequested
-          ) {
-            accessRevocationRequested = true;
-            setAuthNotice(status === 'pending'
-              ? 'Your registration is pending administrator approval.'
-              : 'Your registration request was not approved. You cannot access the system.');
-            void signOut(auth).catch((error) => {
-              console.error('Failed to sign out an unapproved account', error);
-              setAuthError('Your account is not approved and could not be signed out. Please close this page and contact an administrator.');
-            });
-          }
         },
         (error) => {
           console.error('Failed to load business profile', error);
-          setAuthError('Your business profile could not be loaded. Check your connection and Firestore rules.');
+          const isPerm = error?.message?.includes('Missing or insufficient permissions') || (error as any)?.code === 'permission-denied';
+          setAuthError(
+            isPerm
+              ? 'Firestore security rules in your connected Firebase project are blocking access. Please open Firebase Console → Firestore Database → Rules, paste the security rules, and click Publish.'
+              : 'Your business profile could not be loaded. Check your internet connection and Firestore rules.'
+          );
           profileLoaded = true;
           finishLoading();
         }
@@ -154,13 +163,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       unsubscribeRole = onSnapshot(
         doc(db, 'userRoles', currentUser.uid),
         (roleSnapshot) => {
-          setIsAdmin(roleSnapshot.data()?.role === 'admin');
+          const isUserAdmin = roleSnapshot.data()?.role === 'admin';
+          setIsAdmin(isUserAdmin);
+          if (isUserAdmin) {
+            setApprovalStatus('approved');
+            setApprovalStatusVerified(true);
+          }
           roleLoaded = true;
           finishLoading();
         },
         (error) => {
           console.error('Failed to load account role', error);
-          setAuthError('Your account access could not be loaded. Check your connection and Firestore rules.');
+          const isPerm = error?.message?.includes('Missing or insufficient permissions') || (error as any)?.code === 'permission-denied';
+          if (isPerm) {
+            setAuthError(
+              'Firestore security rules in your connected Firebase project are blocking access. Please open Firebase Console → Firestore Database → Rules, paste the security rules, and click Publish.'
+            );
+          }
           roleLoaded = true;
           finishLoading();
         }
@@ -180,44 +199,183 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = useCallback(async (email: string, password: string) => {
     setAuthNotice(null);
+    setAuthError(null);
     await signInWithEmailAndPassword(auth, email.trim(), password);
   }, []);
 
-  const registerAccount = useCallback(async (email: string, password: string) => {
-    setAuthNotice(null);
-    const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+  const submitPendingRequest = useCallback(async (customName?: string, customBusiness?: string) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error('You must be signed in to submit an approval request.');
+
+    const name = customName?.trim() || currentUser.displayName || '';
+    const businessName = customBusiness?.trim() || '';
+    const email = currentUser.email || '';
     const timestamp = serverTimestamp();
+    const docRef = doc(db, 'users', currentUser.uid);
 
     try {
-      await setDoc(doc(db, 'users', credential.user.uid), {
-        businessName: '',
-        email: credential.user.email,
+      await setDoc(docRef, {
+        name,
+        businessName,
+        email,
         role: 'user',
         approvalStatus: 'pending',
         submittedAt: timestamp,
         createdAt: timestamp,
         updatedAt: timestamp
       });
-    } catch (error) {
-      console.error('Failed to save registration request', error);
-      try {
-        await signOut(auth);
-      } catch (signOutError) {
-        console.error('Failed to sign out after registration could not be saved', signOutError);
-        setAuthError('Your registration request could not be saved, and this account could not be signed out. Contact an administrator.');
-      }
-      throw new Error('Your account was created, but the registration request could not be saved. Please contact an administrator.');
+    } catch (firstErr) {
+      console.warn('Full registration request failed, retrying legacy format:', firstErr);
+      await setDoc(docRef, {
+        businessName: '',
+        email,
+        role: 'user',
+        approvalStatus: 'pending',
+        submittedAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      });
     }
 
-    setAuthNotice('Your registration request was submitted. You can sign in after an administrator approves it.');
+    setApprovalStatus('pending');
+    setProfile({
+      name: name || undefined,
+      businessName,
+      email,
+      role: 'user',
+      approvalStatus: 'pending',
+      submittedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    });
+  }, []);
+
+  const registerAccount = useCallback(async (
+    params: RegisterAccountParams | string,
+    maybePassword?: string
+  ) => {
+    setAuthNotice(null);
+    setAuthError(null);
+
+    let name = '';
+    let businessName = '';
+    let email = '';
+    let password = '';
+
+    if (typeof params === 'object') {
+      name = params.name.trim();
+      businessName = params.businessName.trim();
+      email = params.email.trim();
+      password = params.password;
+    } else {
+      email = params.trim();
+      password = maybePassword || '';
+    }
+
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
+
+    if (name) {
+      try {
+        await updateProfile(credential.user, { displayName: name });
+      } catch (err) {
+        console.warn('Failed to set Firebase Auth display name', err);
+      }
+    }
+
+    const timestamp = serverTimestamp();
+    const docRef = doc(db, 'users', credential.user.uid);
+
+    try {
+      // 1. Try full modern schema
+      await setDoc(docRef, {
+        name,
+        businessName,
+        email: credential.user.email || email,
+        role: 'user',
+        approvalStatus: 'pending',
+        submittedAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      });
+    } catch (firstError) {
+      console.warn('Failed with modern schema, attempting fallback schema:', firstError);
+      try {
+        // 2. Fallback schema for legacy firestore.rules deployed in Firebase Console
+        await setDoc(docRef, {
+          businessName: '',
+          email: credential.user.email || email,
+          role: 'user',
+          approvalStatus: 'pending',
+          submittedAt: timestamp,
+          createdAt: timestamp,
+          updatedAt: timestamp
+        });
+      } catch (fallbackError) {
+        console.error('Failed to save registration request with both schemas', firstError, fallbackError);
+        try {
+          await signOut(auth);
+        } catch (signOutError) {
+          console.error('Failed to sign out after registration failure', signOutError);
+        }
+        throw new Error(
+          'Your account was created in authentication, but saving registration to Firestore was denied by security rules. Please update and publish firestore.rules in your Firebase Console.'
+        );
+      }
+    }
+
+    setApprovalStatus('pending');
+    setProfile({
+      name: name || undefined,
+      businessName,
+      email: credential.user.email || email,
+      role: 'user',
+      approvalStatus: 'pending',
+      submittedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    });
+
+    setAuthNotice('Your registration request was submitted and is pending administrator approval.');
   }, []);
 
   const logout = useCallback(async () => {
     setAuthNotice(null);
+    setAuthError(null);
     await signOut(auth);
   }, []);
 
   const clearAuthNotice = useCallback(() => setAuthNotice(null), []);
+
+  const refreshProfile = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    try {
+      const profileSnapshot = await getDoc(doc(db, 'users', currentUser.uid));
+      if (profileSnapshot.exists()) {
+        const data = profileSnapshot.data();
+        const rawStatus = data?.approvalStatus;
+        const status: ApprovalStatus = rawStatus === 'pending' || rawStatus === 'rejected'
+          ? rawStatus
+          : 'approved';
+        setApprovalStatus(status);
+        setApprovalStatusVerified(true);
+        setProfile({
+          name: typeof data.name === 'string' ? data.name : currentUser.displayName || undefined,
+          businessName: typeof data.businessName === 'string' ? data.businessName : '',
+          email: typeof data.email === 'string' ? data.email : currentUser.email || undefined,
+          role: data.role === 'admin' ? 'admin' : 'user',
+          approvalStatus: status,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+          submittedAt: data.submittedAt,
+          reviewedBy: typeof data.reviewedBy === 'string' ? data.reviewedBy : undefined,
+          reviewedAt: data.reviewedAt
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
+  }, []);
 
   const saveBusinessName = useCallback(async (businessName: string) => {
     const currentUser = auth.currentUser;
@@ -247,6 +405,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setProfile((currentProfile) => ({
+      name: currentProfile?.name || currentUser.displayName || undefined,
       businessName: normalizedName,
       email: currentProfile?.email || currentUser.email || undefined,
       role: currentProfile?.role || (isAdmin ? 'admin' : 'user'),
@@ -270,7 +429,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       registerAccount,
       logout,
       clearAuthNotice,
-      saveBusinessName
+      saveBusinessName,
+      refreshProfile,
+      submitPendingRequest
     }}>
       {loading ? <LoadingScreen /> : children}
     </AuthContext.Provider>
