@@ -20,6 +20,7 @@ import { SaleModal } from './components/SaleModal';
 import { BikeDetailModal } from './components/BikeDetailModal';
 import { InvoiceModal } from './components/InvoiceModal';
 import { LoginScreen } from './components/LoginScreen';
+import { PendingApprovalScreen } from './components/PendingApprovalScreen';
 import { BusinessNameSetup } from './components/BusinessNameSetup';
 import { LoadingScreen } from './components/LoadingScreen';
 import { PWAUpdateNotice } from './components/PWAUpdateNotice';
@@ -145,27 +146,15 @@ const AuthenticatedApp: React.FC = () => {
   }
 
   if (approvalStatus !== 'approved') {
-    const message = !approvalStatusVerified
-      ? 'Checking your latest account approval status...'
-      : approvalStatus === 'pending'
-        ? 'Your registration is pending administrator approval.'
-        : approvalStatus === 'rejected'
-          ? 'Your registration request was not approved. You cannot access the system.'
-          : 'No registration request was found for this account.';
-
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-950 p-6 text-center text-slate-100">
-        <BikeIcon className="h-10 w-10 text-sky-400" aria-hidden="true" />
-        <h1 className="text-2xl font-black">Account approval required</h1>
-        <p role="status" className="max-w-md text-sm text-slate-300">{authNotice || message}</p>
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-slate-950"
-        >
-          Sign out
-        </button>
-      </main>
+      <PendingApprovalScreen
+        user={user}
+        profile={profile}
+        approvalStatus={approvalStatus}
+        approvalStatusVerified={approvalStatusVerified}
+        authNotice={authNotice}
+        onSignOut={() => void logout()}
+      />
     );
   }
 

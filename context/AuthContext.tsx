@@ -15,12 +15,20 @@ import { LoadingScreen } from '../src/components/LoadingScreen';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'unregistered';
 
 export interface UserProfile {
+  name?: string;
   businessName: string;
   email?: string;
   role: 'admin' | 'user';
   approvalStatus: ApprovalStatus;
   createdAt?: unknown;
   updatedAt?: unknown;
+}
+
+export interface RegisterAccountParams {
+  name: string;
+  businessName: string;
+  email: string;
+  password: string;
 }
 
 interface AuthContextValue {
@@ -33,7 +41,10 @@ interface AuthContextValue {
   authError: string | null;
   authNotice: string | null;
   signIn: (email: string, password: string) => Promise<void>;
-  registerAccount: (email: string, password: string) => Promise<void>;
+  registerAccount: (
+    emailOrParams: string | RegisterAccountParams,
+    possiblePassword?: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   clearAuthNotice: () => void;
   saveBusinessName: (businessName: string) => Promise<void>;
@@ -76,7 +87,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let unsubscribeProfile: (() => void) | undefined;
     let unsubscribeRole: (() => void) | undefined;
-    let accessRevocationRequested = false;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) setLoading(true);
@@ -84,7 +94,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       unsubscribeRole?.();
       unsubscribeProfile = undefined;
       unsubscribeRole = undefined;
-      accessRevocationRequested = false;
       setUser(currentUser);
       setProfile(null);
       setIsAdmin(false);
@@ -117,6 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (!profileSnapshot.metadata.fromCache) setApprovalStatusVerified(true);
           setProfile(profileSnapshot.exists()
             ? {
+                name: typeof data.name === 'string' ? data.name : undefined,
                 businessName: typeof data.businessName === 'string' ? data.businessName : '',
                 email: typeof data.email === 'string' ? data.email : undefined,
                 role: data.role === 'admin' ? 'admin' : 'user',
@@ -128,19 +138,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           profileLoaded = true;
           finishLoading();
 
-          if (
-            !profileSnapshot.metadata.fromCache
-            && (status === 'pending' || status === 'rejected')
-            && !accessRevocationRequested
-          ) {
-            accessRevocationRequested = true;
+          if (!profileSnapshot.metadata.fromCache && (status === 'pending' || status === 'rejected')) {
             setAuthNotice(status === 'pending'
               ? 'Your registration is pending administrator approval.'
               : 'Your registration request was not approved. You cannot access the system.');
-            void signOut(auth).catch((error) => {
-              console.error('Failed to sign out an unapproved account', error);
-              setAuthError('Your account is not approved and could not be signed out. Please close this page and contact an administrator.');
-            });
           }
         },
         (error) => {
@@ -183,21 +184,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await signInWithEmailAndPassword(auth, email.trim(), password);
   }, []);
 
-  const registerAccount = useCallback(async (email: string, password: string) => {
+  const registerAccount = useCallback(async (
+    emailOrParams: string | RegisterAccountParams,
+    possiblePassword?: string
+  ) => {
     setAuthNotice(null);
-    const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+    let name = '';
+    let businessName = '';
+    let email = '';
+    let password = '';
+
+    if (typeof emailOrParams === 'object' && emailOrParams !== null) {
+      name = emailOrParams.name.trim();
+      businessName = emailOrParams.businessName.trim();
+      email = emailOrParams.email.trim();
+      password = emailOrParams.password;
+    } else {
+      email = String(emailOrParams).trim();
+      password = possiblePassword || '';
+    }
+
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
     const timestamp = serverTimestamp();
 
     try {
-      await setDoc(doc(db, 'users', credential.user.uid), {
-        businessName: '',
-        email: credential.user.email,
+      const payload: Record<string, any> = {
+        name,
+        businessName,
+        email: credential.user.email || email,
         role: 'user',
         approvalStatus: 'pending',
         submittedAt: timestamp,
         createdAt: timestamp,
         updatedAt: timestamp
-      });
+      };
+
+      await setDoc(doc(db, 'users', credential.user.uid), payload);
     } catch (error) {
       console.error('Failed to save registration request', error);
       try {
@@ -209,7 +231,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('Your account was created, but the registration request could not be saved. Please contact an administrator.');
     }
 
-    setAuthNotice('Your registration request was submitted. You can sign in after an administrator approves it.');
+    setAuthNotice('Your registration request was submitted. You will be able to access the system once an administrator approves your account.');
   }, []);
 
   const logout = useCallback(async () => {
@@ -235,6 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else if (isAdmin) {
       const timestamp = serverTimestamp();
       await setDoc(profileRef, {
+        name: currentUser.displayName || '',
         businessName: normalizedName,
         email: currentUser.email || '',
         role: 'admin',
@@ -247,6 +270,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setProfile((currentProfile) => ({
+      name: currentProfile?.name || currentUser.displayName || undefined,
       businessName: normalizedName,
       email: currentProfile?.email || currentUser.email || undefined,
       role: currentProfile?.role || (isAdmin ? 'admin' : 'user'),

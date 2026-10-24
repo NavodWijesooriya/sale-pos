@@ -28,12 +28,13 @@ service cloud.firestore {
     function isPendingRegistrationRequest(userId) {
       return isOwnUser(userId)
         && request.resource.data.keys().hasOnly([
-          'businessName', 'email', 'role', 'approvalStatus', 'submittedAt', 'createdAt', 'updatedAt'
+          'name', 'businessName', 'email', 'role', 'approvalStatus', 'submittedAt', 'createdAt', 'updatedAt'
         ])
         && request.resource.data.keys().hasAll([
           'businessName', 'email', 'role', 'approvalStatus', 'submittedAt', 'createdAt', 'updatedAt'
         ])
-        && request.resource.data.businessName == ''
+        && request.resource.data.businessName is string
+        && (!request.resource.data.keys().hasAny(['name']) || request.resource.data.name is string)
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.role == 'user'
         && request.resource.data.approvalStatus == 'pending'
@@ -46,13 +47,14 @@ service cloud.firestore {
       return isOwnUser(userId)
         && isAdmin()
         && request.resource.data.keys().hasOnly([
-          'businessName', 'email', 'role', 'approvalStatus', 'createdAt', 'updatedAt'
+          'name', 'businessName', 'email', 'role', 'approvalStatus', 'createdAt', 'updatedAt'
         ])
         && request.resource.data.keys().hasAll([
           'businessName', 'email', 'role', 'approvalStatus', 'createdAt', 'updatedAt'
         ])
         && request.resource.data.businessName is string
         && request.resource.data.businessName.size() > 0
+        && (!request.resource.data.keys().hasAny(['name']) || request.resource.data.name is string)
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.role == 'admin'
         && request.resource.data.approvalStatus == 'approved'
@@ -62,7 +64,6 @@ service cloud.firestore {
 
     function isAdminApprovalUpdate() {
       return isAdmin()
-        && resource.data.approvalStatus == 'pending'
         && request.resource.data.approvalStatus in ['approved', 'rejected']
         && request.resource.data.reviewedBy == request.auth.uid
         && request.resource.data.reviewedAt == request.time
