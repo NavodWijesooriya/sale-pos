@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDealership } from '../context/DealershipContext';
+import { useAuth } from '../../context/AuthContext';
 import { BikeCategory, BikeCondition, OtherCostItem, OtherCostCategory, VehicleType } from '../types';
 import { 
   X, 
@@ -8,15 +9,23 @@ import {
   Wrench, 
   Check, 
   TrendingUp, 
-  DollarSign, 
   FileText, 
   Truck, 
   ShieldCheck, 
   SlidersHorizontal,
   Sparkles,
-  HelpCircle
+  Upload,
+  Image as ImageIcon,
+  Phone,
+  MapPin,
+  UserCheck,
+  Star,
+  Loader2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { formatCurrency, calculateTotalOtherCosts } from '../utils/formatters';
+import { uploadVehiclePhoto, validateImageFile } from '../utils/imageUpload';
 
 interface BikeModalProps {
   isEdit?: boolean;
@@ -36,6 +45,7 @@ const OTHER_COST_CATEGORIES: { label: string; category: OtherCostCategory; icon:
 ];
 
 export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
+  const { user } = useAuth();
   const { 
     isAddBikeModalOpen, 
     setIsAddBikeModalOpen, 
@@ -47,6 +57,8 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
     setActiveTab,
     settings 
   } = useDealership();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isOpen = isEdit ? isEditBikeModalOpen : isAddBikeModalOpen;
   const onClose = () => (isEdit ? setIsEditBikeModalOpen(false) : setIsAddBikeModalOpen(false));
@@ -63,11 +75,22 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
   const [regPlate, setRegPlate] = useState('');
   const [isUnregistered, setIsUnregistered] = useState(false);
 
+  // Supplier Details (Required Name & Phone, Optional Address)
+  const [supplierName, setSupplierName] = useState('');
+  const [supplierAddress, setSupplierAddress] = useState('');
+  const [supplierPhone, setSupplierPhone] = useState('');
+
+  // Vehicle Photos (Multi-photo upload + preview)
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const [customPhotoUrl, setCustomPhotoUrl] = useState('');
+  const [showPhotoUrlInput, setShowPhotoUrlInput] = useState(false);
+
   // Financial fields
   const [costPrice, setCostPrice] = useState<number | ''>('');
   const [targetSalePrice, setTargetSalePrice] = useState<number | ''>('');
   const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [supplierOrSeller, setSupplierOrSeller] = useState('');
 
   // Other Costs
   const [otherCosts, setOtherCosts] = useState<OtherCostItem[]>([]);
@@ -82,10 +105,9 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
   const [mileage, setMileage] = useState<number | ''>('');
   const [color, setColor] = useState('Black');
   const [engineCapacityCc, setEngineCapacityCc] = useState<number | ''>(125);
-  const [imageUrl, setImageUrl] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Accessible Form Error Feedback (Replaces window.alert)
+  // Error & Saving States
   const [formError, setFormError] = useState('');
   const [costError, setCostError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -106,12 +128,25 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
       setCondition(selectedBike.condition);
       setCostPrice(selectedBike.purchasePrice);
       setPurchaseDate(selectedBike.purchaseDate);
-      setSupplierOrSeller(selectedBike.supplierOrSeller || '');
       setTargetSalePrice(selectedBike.targetSalePrice);
-      setImageUrl(selectedBike.imageUrl || '');
+      
+      // Supplier info
+      setSupplierName(selectedBike.supplierName || selectedBike.supplierOrSeller || '');
+      setSupplierAddress(selectedBike.supplierAddress || '');
+      setSupplierPhone(selectedBike.supplierPhone || '');
+
+      // Photos
+      const existingPhotos = selectedBike.imageUrls && selectedBike.imageUrls.length > 0
+        ? selectedBike.imageUrls
+        : (selectedBike.imageUrl ? [selectedBike.imageUrl] : []);
+      setPhotos(existingPhotos);
+      setPhotoError('');
+      setCustomPhotoUrl('');
+      setShowPhotoUrlInput(false);
+
       setNotes(selectedBike.notes || '');
       setOtherCosts(selectedBike.repairCosts || []);
-      setShowAdvancedSpecs(!!(selectedBike.vin || selectedBike.notes || selectedBike.supplierOrSeller));
+      setShowAdvancedSpecs(!!(selectedBike.vin || selectedBike.notes));
     } else if (!isEdit) {
       setVehicleType('Bike');
       setMake('Honda');
@@ -127,15 +162,22 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
       setCondition('Used');
       setCostPrice('');
       setPurchaseDate(new Date().toISOString().split('T')[0]);
-      setSupplierOrSeller('');
+      setSupplierName('');
+      setSupplierAddress('');
+      setSupplierPhone('');
+      setPhotos([]);
+      setPhotoError('');
+      setCustomPhotoUrl('');
+      setShowPhotoUrlInput(false);
       setTargetSalePrice('');
-      setImageUrl('');
       setNotes('');
       setOtherCosts([]);
       setShowAdvancedSpecs(false);
       setNewCostDesc('');
       setNewCostAmount('');
     }
+    setFormError('');
+    setCostError('');
   }, [isEdit, selectedBike, isOpen]);
 
   if (!isOpen) return null;
@@ -149,6 +191,67 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
   const profitMarginPercent = numSalePrice > 0 ? (netProfit / numSalePrice) * 100 : 0;
   const isProfitable = netProfit > 0;
   const isBreakEven = netProfit === 0;
+
+  // Phone Validation helper
+  const validatePhone = (phoneStr: string): boolean => {
+    const cleaned = phoneStr.replace(/[\s\-\(\)]/g, '');
+    return /^(\+?\d{9,15})$/.test(cleaned);
+  };
+
+  // Handle Photo File Pick
+  const handlePhotoFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setPhotoError('');
+    setIsUploadingPhoto(true);
+    const files = Array.from(e.target.files);
+    const newUploaded: string[] = [];
+
+    try {
+      for (const file of files) {
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+          setPhotoError(validation.error || 'Invalid photo file.');
+          continue;
+        }
+        const uploadedUrl = await uploadVehiclePhoto(file, user?.uid || 'guest');
+        newUploaded.push(uploadedUrl);
+      }
+      if (newUploaded.length > 0) {
+        setPhotos((prev) => [...prev, ...newUploaded]);
+      }
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Photo upload failed. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Add custom URL photo
+  const handleAddCustomPhotoUrl = () => {
+    if (!customPhotoUrl.trim()) return;
+    try {
+      new URL(customPhotoUrl.trim());
+      setPhotos((prev) => [...prev, customPhotoUrl.trim()]);
+      setCustomPhotoUrl('');
+      setShowPhotoUrlInput(false);
+      setPhotoError('');
+    } catch {
+      setPhotoError('Please enter a valid image URL starting with http:// or https://');
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSetPrimaryPhoto = (index: number) => {
+    setPhotos((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      return [item, ...next];
+    });
+  };
 
   const handleAddOtherCost = () => {
     setCostError('');
@@ -189,14 +292,31 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
     if (isSaving) return;
     setFormError('');
 
+    // Vehicle details validation
     if (!model.trim()) {
-      setFormError('Please enter the vehicle or vehicle model name.');
+      setFormError('Please enter the vehicle or model name.');
       return;
     }
     if (year === '' || year < 1980 || year > new Date().getFullYear() + 1) {
       setFormError(`Please enter a model year between 1980 and ${new Date().getFullYear() + 1}.`);
       return;
     }
+
+    // Supplier details validation (Required Name & Phone)
+    if (!supplierName.trim()) {
+      setFormError('Please enter the Supplier Name in the Supplier Information section.');
+      return;
+    }
+    if (!supplierPhone.trim()) {
+      setFormError('Please enter the Supplier Phone Number in the Supplier Information section.');
+      return;
+    }
+    if (!validatePhone(supplierPhone)) {
+      setFormError('Please enter a valid Supplier Phone Number (e.g. 0771234567 or +94771234567).');
+      return;
+    }
+
+    // Financial validation
     if (numCostPrice <= 0) {
       setFormError('Please enter a valid purchase / cost price for the vehicle.');
       return;
@@ -207,34 +327,41 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
       : (regPlate.trim() ? regPlate.trim().toUpperCase() : 'UNREG');
 
     const defaultImg = 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80';
+    const primaryImg = photos[0] || defaultImg;
     const finalSalePrice = numSalePrice > 0 ? numSalePrice : Math.round(totalCost * 1.2);
+
+    const bikePayload = {
+      vehicleType,
+      make: make.trim(),
+      model: model.trim(),
+      year: Number(year) || new Date().getFullYear(),
+      category,
+      vin: vin.trim() || (isEdit && selectedBike ? selectedBike.vin : `VIN-${Date.now().toString().slice(-8)}`),
+      regPlate: finalRegPlate,
+      mileage: Number(mileage) || 0,
+      color: color.trim() || 'Black',
+      engineCapacityCc: Number(engineCapacityCc) || 125,
+      condition,
+      purchasePrice: numCostPrice,
+      purchaseDate,
+      supplierName: supplierName.trim(),
+      supplierAddress: supplierAddress.trim(),
+      supplierPhone: supplierPhone.trim(),
+      supplierOrSeller: supplierName.trim(),
+      targetSalePrice: finalSalePrice,
+      imageUrl: primaryImg,
+      imageUrls: photos.length > 0 ? photos : [primaryImg],
+      notes: notes.trim(),
+      repairCosts: otherCosts
+    };
 
     if (isEdit && selectedBike) {
       setIsSaving(true);
       try {
-        await updateBike(selectedBike.id, {
-          vehicleType,
-          make: make.trim(),
-          model: model.trim(),
-          year: Number(year) || new Date().getFullYear(),
-          category,
-          vin: vin.trim() || selectedBike.vin || `VIN-${Date.now().toString().slice(-8)}`,
-          regPlate: finalRegPlate,
-          mileage: Number(mileage) || 0,
-          color: color.trim() || 'Black',
-          engineCapacityCc: Number(engineCapacityCc) || 125,
-          condition,
-          purchasePrice: numCostPrice,
-          purchaseDate,
-          supplierOrSeller: supplierOrSeller.trim(),
-          targetSalePrice: finalSalePrice,
-          imageUrl: imageUrl.trim() || selectedBike.imageUrl || defaultImg,
-          notes: notes.trim(),
-          repairCosts: otherCosts
-        });
+        await updateBike(selectedBike.id, bikePayload);
         onClose();
       } catch (error) {
-        setFormError(error instanceof Error ? error.message : 'Vehicle could not be saved. Check your connection and try again.');
+        setFormError(error instanceof Error ? error.message : 'Vehicle could not be updated. Check your connection and try again.');
       } finally {
         setIsSaving(false);
       }
@@ -243,26 +370,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
 
     setIsSaving(true);
     try {
-      await addBike({
-        vehicleType,
-        make: make.trim(),
-        model: model.trim(),
-        year: Number(year) || new Date().getFullYear(),
-        category,
-        vin: vin.trim() || `VIN-${Date.now().toString().slice(-8)}`,
-        regPlate: finalRegPlate,
-        mileage: Number(mileage) || 0,
-        color: color.trim() || 'Black',
-        engineCapacityCc: Number(engineCapacityCc) || 125,
-        condition,
-        purchasePrice: numCostPrice,
-        purchaseDate,
-        supplierOrSeller: supplierOrSeller.trim(),
-        targetSalePrice: finalSalePrice,
-        imageUrl: imageUrl.trim() || defaultImg,
-        notes: notes.trim(),
-        repairCosts: otherCosts
-      });
+      await addBike(bikePayload);
       setActiveTab('dashboard');
       onClose();
     } catch (error) {
@@ -293,7 +401,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
               </span>
             </div>
             <h2 id="bike-modal-title" className="text-lg sm:text-xl font-black text-white mt-1">
-              {isEdit ? `Edit ${selectedBike?.make} ${selectedBike?.model}` : 'Add Vehicle, Cost & Other Expenses'}
+              {isEdit ? `Edit ${selectedBike?.make} ${selectedBike?.model}` : 'Add Vehicle, Photos & Supplier Details'}
             </h2>
           </div>
 
@@ -402,7 +510,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. CD 70, Pulsar 150, FZ-S V3, Activa 6G, Dio, Hornet"
+                  placeholder="e.g. Pulsar 150, FZ-S V3, Activa 6G, Dio, Wagon R, Alto"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500 font-bold placeholder-slate-600"
@@ -448,7 +556,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                         setIsUnregistered(e.target.checked);
                         if (e.target.checked) setRegPlate('');
                       }}
-                      className="rounded bg-slate-900 border-slate-700"
+                      className="rounded accent-sky-500"
                     />
                     <span>Unregistered</span>
                   </label>
@@ -456,10 +564,12 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                 <input
                   type="text"
                   disabled={isUnregistered}
-                  placeholder={isUnregistered ? 'UNREGISTERED' : 'e.g. WP BDF-1234'}
+                  placeholder={isUnregistered ? 'UNREGISTERED' : 'e.g. WP CA-1234, 65-4321'}
                   value={isUnregistered ? 'UNREGISTERED' : regPlate}
                   onChange={(e) => setRegPlate(e.target.value.toUpperCase())}
-                  className="w-full bg-slate-900 border border-slate-800 disabled:opacity-50 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500 font-mono font-bold"
+                  className={`w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500 font-mono font-bold uppercase ${
+                    isUnregistered ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 />
               </div>
 
@@ -468,134 +578,233 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                 <select
                   value={condition}
                   onChange={(e) => setCondition(e.target.value as BikeCondition)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500 font-bold"
                 >
+                  <option value="Used">Used / Registered</option>
                   <option value="Brand New">Brand New</option>
-                  <option value="Used">Used</option>
                 </select>
               </div>
             </div>
+          </div>
 
-            <div className="border border-slate-800 rounded-xl overflow-hidden">
+          {/* Section 2: Vehicle Photos (Multi-photo upload & preview) */}
+          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold">2</span>
+                  Vehicle Photos
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Upload one or more photos. The first photo will be used as the primary showcase image.
+                </p>
+              </div>
+              <span className="text-xs font-bold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 font-mono">
+                {photos.length} Photo{photos.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            {/* Photo Error Banner */}
+            {photoError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                <X className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{photoError}</span>
+              </div>
+            )}
+
+            {/* Upload Action Area */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp,image/jpg"
+                onChange={handlePhotoFilesSelected}
+                className="hidden"
+                id="vehicle-photo-input"
+              />
+              <label
+                htmlFor="vehicle-photo-input"
+                className={`w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-xl border-2 border-dashed transition-all cursor-pointer text-xs font-bold ${
+                  isUploadingPhoto
+                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300 cursor-wait'
+                    : 'border-slate-700 bg-slate-900 hover:bg-slate-800/80 hover:border-indigo-400 text-slate-200'
+                }`}
+              >
+                {isUploadingPhoto ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                    <span>Compressing & Uploading Photos...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 text-indigo-400" />
+                    <span>Upload Vehicle Photos (JPEG, PNG, WebP &lt; 5MB)</span>
+                  </>
+                )}
+              </label>
+
               <button
                 type="button"
-                onClick={() => setShowAdvancedSpecs(!showAdvancedSpecs)}
-                className="w-full p-3.5 bg-slate-950/80 hover:bg-slate-950 flex items-center justify-between text-xs font-bold text-slate-300 transition-colors"
+                onClick={() => setShowPhotoUrlInput(!showPhotoUrlInput)}
+                className="px-3.5 py-3 min-h-[44px] rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-medium transition-colors shrink-0"
               >
-                <span className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-sky-400" />
-                  Additional Details (Optional)
-                </span>
-                <span className="text-[11px] text-sky-400">
-                  {showAdvancedSpecs ? 'Hide' : '+ Expand Optional Details'}
-                </span>
+                {showPhotoUrlInput ? 'Hide URL Input' : 'Add via URL'}
               </button>
+            </div>
 
-              {showAdvancedSpecs && (
-                <div className="p-4 bg-slate-950/40 border-t border-slate-800 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Mileage / Odometer (km)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="e.g. 15000"
-                        value={mileage}
-                        onWheel={(e) => e.currentTarget.blur()}
-                        onChange={(e) => setMileage(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
-                      />
-                    </div>
+            {/* Optional URL input */}
+            {showPhotoUrlInput && (
+              <div className="flex items-center gap-2 pt-1 animate-fadeIn">
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/... or direct image link"
+                  value={customPhotoUrl}
+                  onChange={(e) => setCustomPhotoUrl(e.target.value)}
+                  className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomPhotoUrl}
+                  className="px-4 py-2.5 min-h-[40px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0"
+                >
+                  Add Photo
+                </button>
+              </div>
+            )}
 
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Engine Capacity (cc)</label>
-                      <input
-                        type="number"
-                        min="50"
-                        max="2500"
-                        placeholder="e.g. 125, 150, 250"
-                        value={engineCapacityCc}
-                        onWheel={(e) => e.currentTarget.blur()}
-                        onChange={(e) => setEngineCapacityCc(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Color / Finish</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Gloss Red / Black"
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Chassis / VIN Number</label>
-                      <input
-                        type="text"
-                        placeholder="VIN or Chassis Number"
-                        value={vin}
-                        onChange={(e) => setVin(e.target.value.toUpperCase())}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Purchase Date</label>
-                      <input
-                        type="date"
-                        value={purchaseDate}
-                        onChange={(e) => setPurchaseDate(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Supplier / Trade-in Source</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Private Seller, Auction"
-                        value={supplierOrSeller}
-                        onChange={(e) => setSupplierOrSeller(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Photo URL</label>
-                    <input
-                      type="url"
-                      placeholder="https://... (Leave blank for default vehicle photo)"
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none"
+            {/* Thumbnails Preview Grid */}
+            {photos.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                {photos.map((url, idx) => (
+                  <div
+                    key={`${url}-${idx}`}
+                    className="relative group rounded-xl overflow-hidden border border-slate-800 bg-slate-950 aspect-video flex flex-col justify-between shadow-md"
+                  >
+                    <img
+                      src={url}
+                      alt={`Vehicle view ${idx + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
                     />
-                  </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Vehicle Notes & Remarks</label>
-                    <textarea
-                      rows={2}
-                      placeholder="Documentation notes, accessories included, ownership details..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none"
-                    />
+                    {/* Primary Badge */}
+                    <div className="absolute top-1.5 left-1.5">
+                      {idx === 0 ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase shadow">
+                          <Star className="w-2.5 h-2.5 fill-current" /> Primary
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimaryPhoto(idx)}
+                          className="px-1.5 py-0.5 rounded bg-slate-900/80 hover:bg-emerald-500 hover:text-slate-950 text-slate-300 text-[9px] font-bold border border-slate-700 opacity-0 group-hover:opacity-100 transition-all"
+                          title="Set as primary showcase photo"
+                        >
+                          Set Primary
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Remove Action */}
+                    <div className="absolute top-1.5 right-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(idx)}
+                        className="p-1 rounded-lg bg-rose-500/90 hover:bg-rose-600 text-white shadow transition-all opacity-0 group-hover:opacity-100"
+                        title="Remove photo"
+                        aria-label={`Remove photo ${idx + 1}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="absolute bottom-1 right-1.5 text-[9px] text-slate-400 font-mono bg-slate-950/70 px-1 rounded">
+                      #{idx + 1}
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-slate-900/40 rounded-xl border border-dashed border-slate-800 text-xs text-slate-500 space-y-1">
+                <ImageIcon className="w-7 h-7 mx-auto text-slate-600" />
+                <p>No vehicle photos uploaded yet.</p>
+                <p className="text-[10px] text-slate-600">A default vehicle silhouette will be used if no photo is provided.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Supplier Information */}
+          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[10px] font-bold">3</span>
+                  Supplier Information
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Record vehicle source, seller/supplier name, address, and contact number.
+                </p>
+              </div>
+              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Required Fields *</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Supplier Name */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-sky-400" />
+                  Supplier / Seller Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Kasun Motors, Sunil Perera, Ceylon Auctions"
+                  value={supplierName}
+                  onChange={(e) => setSupplierName(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm text-white font-medium outline-none focus:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-500/30"
+                />
+              </div>
+
+              {/* Supplier Phone Number */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                  Supplier Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="e.g. 0771234567 or +94771234567"
+                  value={supplierPhone}
+                  onChange={(e) => setSupplierPhone(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm text-white font-mono font-medium outline-none focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+                />
+              </div>
+
+              {/* Supplier Address */}
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                  Supplier Address (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. No. 45, Kandy Road, Kadawatha"
+                  value={supplierAddress}
+                  onChange={(e) => setSupplierAddress(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm text-white outline-none focus:border-amber-500 focus-visible:ring-2 focus-visible:ring-amber-500/30"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Section 2: Cost Price & Selling Price */}
+          {/* Section 4: Cost Price & Target Selling Price */}
           <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold">2</span>
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold">4</span>
                 Cost Price & Target Selling Price
               </h3>
               <span className="text-[11px] text-emerald-400 font-bold">Base Financials</span>
@@ -615,8 +824,8 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                   <input
                     type="number"
                     required
-                    min=""
-                    step="1000"
+                    min="0"
+                    step="any"
                     placeholder="e.g. 750000"
                     value={costPrice}
                     onWheel={(e) => e.currentTarget.blur()}
@@ -642,8 +851,8 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">{symbol}</span>
                   <input
                     type="number"
-                    min=""
-                    step="1000"
+                    min="0"
+                    step="any"
                     placeholder="e.g. 950000"
                     value={targetSalePrice}
                     onWheel={(e) => e.currentTarget.blur()}
@@ -657,14 +866,24 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                 </div>
               </div>
             </div>
+
+            <div>
+              <label className="block text-[11px] text-slate-400 mb-1">Acquisition / Purchase Date</label>
+              <input
+                type="date"
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
+                className="w-full sm:w-60 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none font-mono"
+              />
+            </div>
           </div>
 
-          {/* Section 3: Other Costs (Additional Expenses) */}
+          {/* Section 5: Other Costs (Additional Expenses) */}
           <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">3</span>
+                  <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">5</span>
                   Other Costs (Additional Expenses)
                 </h3>
                 <p className="text-[11px] text-slate-400 mt-0.5">
@@ -741,8 +960,8 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                   type="number"
                   aria-label="Cost amount"
                   placeholder="Cost Amount"
-                  min=""
-                  step="100"
+                  min="0"
+                  step="any"
                   value={newCostAmount}
                   onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => {
@@ -804,7 +1023,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
             )}
           </div>
 
-          {/* Section 4: Profit Feature (Automatic Real-Time Calculation) */}
+          {/* Section 6: Real-time Profit Feature */}
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
@@ -877,6 +1096,85 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Section 7: Optional Advanced Specs (Collapsible) */}
+          <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/40">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedSpecs(!showAdvancedSpecs)}
+              className="w-full flex items-center justify-between p-3.5 text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              <span className="font-semibold flex items-center gap-2">
+                <span>Optional Specifications (VIN, Mileage, Color, Engine CC, Notes)</span>
+              </span>
+              {showAdvancedSpecs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {showAdvancedSpecs && (
+              <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-950/70 animate-fadeIn">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Chassis / VIN Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. MC21-1002345"
+                      value={vin}
+                      onChange={(e) => setVin(e.target.value.toUpperCase())}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Odometer Mileage (km)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 24500"
+                      value={mileage}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onChange={(e) => setMileage(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Color</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Pearl White, Matte Black"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Engine Capacity (CC)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 150"
+                      value={engineCapacityCc}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onChange={(e) => setEngineCapacityCc(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Vehicle Notes & Remarks</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Documentation notes, accessories included, ownership details..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom Action Footer */}

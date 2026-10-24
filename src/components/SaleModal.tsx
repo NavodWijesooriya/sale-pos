@@ -295,7 +295,7 @@ export const SaleModal: React.FC = () => {
           <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img
-                src={activeBike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'}
+                src={(activeBike.imageUrls && activeBike.imageUrls[0]) || activeBike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'}
                 alt={activeBike.model}
                 className="w-14 h-14 rounded-xl object-cover border border-slate-800"
               />
@@ -380,7 +380,7 @@ export const SaleModal: React.FC = () => {
                   type="number"
                   required
                   min="0"
-                  step="1000"
+                  step="any"
                   value={saleAmount}
                   onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => {
@@ -438,7 +438,7 @@ export const SaleModal: React.FC = () => {
                       required
                       min="0"
                       max={saleAmount === '' ? undefined : Number(saleAmount) || undefined}
-                      step="1000"
+                      step="any"
                       value={financeAmount}
                       onWheel={(e) => e.currentTarget.blur()}
                       onChange={(e) => {

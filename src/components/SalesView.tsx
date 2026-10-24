@@ -16,9 +16,11 @@ import {
   Percent,
   Coins,
   Eye,
-  EyeOff
+  EyeOff,
+  Tag
 } from 'lucide-react';
 import { calculateFinancialSummary, formatCurrency, formatDate } from '../utils/formatters';
+import { matchesVehicleNumber } from '../utils/plateSearch';
 import { useAuth } from '../../context/AuthContext';
 
 export const SalesView: React.FC = () => {
@@ -35,6 +37,7 @@ export const SalesView: React.FC = () => {
     updateSettings
   } = useDealership();
 
+  const [plateSearchQuery, setPlateSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState<'All' | 'Cash' | 'Finance'>('All');
   const [dateSort, setDateSort] = useState<'desc' | 'asc'>('desc');
@@ -62,25 +65,32 @@ export const SalesView: React.FC = () => {
       .filter((bike) => {
         if (isAdmin && ownerFilter !== 'All' && bike.ownerUid !== ownerFilter) return false;
         const sale = bike.sale!;
+        const matchesPlate = !plateSearchQuery.trim() || matchesVehicleNumber(bike.regPlate, plateSearchQuery);
+
         const query = searchQuery.toLowerCase().trim();
         const matchesQuery = 
           !query ||
+          matchesVehicleNumber(bike.regPlate, query) ||
           bike.make.toLowerCase().includes(query) ||
           bike.model.toLowerCase().includes(query) ||
+          (bike.vehicleType && bike.vehicleType.toLowerCase().includes(query)) ||
           bike.regPlate.toLowerCase().includes(query) ||
+          bike.condition.toLowerCase().includes(query) ||
+          (bike.supplierName && bike.supplierName.toLowerCase().includes(query)) ||
+          (bike.supplierOrSeller && bike.supplierOrSeller.toLowerCase().includes(query)) ||
           sale.customerName.toLowerCase().includes(query) ||
           (sale.financeProvider && sale.financeProvider.toLowerCase().includes(query));
 
         const matchesMethod = methodFilter === 'All' || sale.saleMethod === methodFilter;
 
-        return matchesQuery && matchesMethod;
+        return matchesPlate && matchesQuery && matchesMethod;
       })
       .sort((a, b) => {
         const timeA = new Date(a.sale!.saleDate).getTime();
         const timeB = new Date(b.sale!.saleDate).getTime();
         return dateSort === 'desc' ? timeB - timeA : timeA - timeB;
       });
-  }, [bikes, searchQuery, methodFilter, dateSort, isAdmin, ownerFilter]);
+  }, [bikes, plateSearchQuery, searchQuery, methodFilter, dateSort, isAdmin, ownerFilter]);
 
   const handleExportCSV = () => {
     if (soldBikes.length === 0) return;
@@ -320,17 +330,51 @@ export const SalesView: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-lg">
-        <div className="w-full md:w-80 relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search bike, buyer, finance provider..."
-            aria-label="Search sold bikes, buyers, or finance providers"
-            className="w-full bg-slate-950 border border-slate-800 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 rounded-xl pl-10 pr-4 py-2.5 min-h-[44px] text-xs sm:text-sm text-white placeholder-slate-500 outline-none transition-all font-medium"
-          />
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-3 shadow-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full lg:max-w-xl">
+          <div className="relative">
+            <Tag className="w-4 h-4 text-sky-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+            <input
+              type="text"
+              value={plateSearchQuery}
+              onChange={(e) => setPlateSearchQuery(e.target.value)}
+              placeholder="Search by vehicle number (e.g. WP CA-1234)..."
+              aria-label="Search sold vehicles by vehicle registration number"
+              className="w-full bg-slate-950 border border-sky-500/40 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/30 rounded-xl pl-10 pr-8 py-2.5 min-h-[44px] text-xs sm:text-sm text-white placeholder-slate-400 outline-none transition-all font-mono font-bold"
+            />
+            {plateSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setPlateSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-1"
+                aria-label="Clear vehicle number search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter buyer, model, finance provider..."
+              aria-label="Search sold bikes, buyers, or finance providers"
+              className="w-full bg-slate-950 border border-slate-800 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 rounded-xl pl-10 pr-8 py-2.5 min-h-[44px] text-xs sm:text-sm text-white placeholder-slate-500 outline-none transition-all font-medium"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-1"
+                aria-label="Clear general search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {isAdmin && (
@@ -338,14 +382,14 @@ export const SalesView: React.FC = () => {
             value={ownerFilter}
             onChange={(event) => setOwnerFilter(event.target.value)}
             aria-label="Filter sales by user"
-            className="w-full md:w-64 bg-slate-950 border border-slate-800 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm text-slate-200 outline-none"
+            className="w-full lg:w-48 bg-slate-950 border border-slate-800 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm text-slate-200 outline-none"
           >
             <option value="All">All Creators</option>
             {ownerOptions.map((owner) => <option key={owner.uid} value={owner.uid}>{owner.label}</option>)}
           </select>
         )}
 
-        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full lg:w-auto">
           <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 w-full sm:w-auto min-h-[44px]" role="group" aria-label="Filter by sale method">
             {(['All', 'Cash', 'Finance'] as const).map((method) => (
               <button
@@ -390,18 +434,29 @@ export const SalesView: React.FC = () => {
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                 <div className="flex items-start gap-4">
                   <img
-                    src={bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'}
+                    src={(bike.imageUrls && bike.imageUrls[0]) || bike.imageUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'}
                     alt={bike.model}
-                    className="w-16 h-16 rounded-xl object-cover border border-slate-800 shrink-0"
+                    onClick={() => openDetailModalForBike(bike)}
+                    className="w-16 h-16 rounded-xl object-cover border border-slate-800 shrink-0 cursor-pointer hover:opacity-85 transition-opacity"
                   />
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-black font-mono tracking-wider bg-sky-500/15 text-sky-300 border border-sky-500/40 shadow-sm">
+                        <span className="text-[9px] uppercase font-bold text-slate-400">NO:</span>
+                        {bike.regPlate}
+                      </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                         isFinance
                           ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                           : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                       }`}>
                         {sale.saleMethod} SALE
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-bold">
+                        {bike.vehicleType || 'Vehicle'}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                        {bike.condition}
                       </span>
                       <span className="text-xs text-slate-400 flex items-center gap-1 font-mono">
                         <Calendar className="w-3 h-3" />
@@ -425,6 +480,23 @@ export const SalesView: React.FC = () => {
                       )}
                       <span>•</span>
                       <span className="text-slate-400 font-mono">{sale.customerPhone}</span>
+                    </div>
+
+                    {/* Preserved Supplier Information */}
+                    <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-2 pt-0.5">
+                      <span>Supplier: <strong className="text-slate-200">{bike.supplierName || bike.supplierOrSeller || 'Direct Purchase'}</strong></span>
+                      {bike.supplierPhone && (
+                        <>
+                          <span>•</span>
+                          <span className="text-emerald-400 font-mono">{bike.supplierPhone}</span>
+                        </>
+                      )}
+                      {bike.supplierAddress && (
+                        <>
+                          <span>•</span>
+                          <span className="text-slate-400 truncate max-w-xs">{bike.supplierAddress}</span>
+                        </>
+                      )}
                     </div>
 
                     {isAdmin && (

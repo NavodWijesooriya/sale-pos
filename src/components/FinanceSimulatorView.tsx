@@ -107,7 +107,7 @@ export const FinanceSimulatorView: React.FC = () => {
               <input
                 type="number"
                 min="0"
-                step="5000"
+                step="any"
                 value={purchasePrice}
                 onChange={(e) => setPurchasePrice(Number(e.target.value) || 0)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-12 pr-3.5 py-2.5 text-xs text-white font-mono font-bold outline-none focus:border-amber-400"
@@ -125,7 +125,7 @@ export const FinanceSimulatorView: React.FC = () => {
               <input
                 type="number"
                 min="0"
-                step="1000"
+                step="any"
                 value={repairCost}
                 onChange={(e) => setRepairCost(Number(e.target.value) || 0)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-12 pr-3.5 py-2.5 text-xs text-white font-mono font-bold outline-none focus:border-amber-400"
@@ -149,7 +149,7 @@ export const FinanceSimulatorView: React.FC = () => {
               <input
                 type="number"
                 min="0"
-                step="5000"
+                step="any"
                 value={saleAmount}
                 onChange={(e) => setSaleAmount(Number(e.target.value) || 0)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-12 pr-3.5 py-2.5 text-xs text-white font-mono font-bold outline-none focus:border-sky-500"
@@ -168,7 +168,7 @@ export const FinanceSimulatorView: React.FC = () => {
                 type="number"
                 min="0"
                 max={saleAmount}
-                step="5000"
+                step="any"
                 value={financeAmount}
                 onChange={(e) => setFinanceAmount(Number(e.target.value) || 0)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-12 pr-3.5 py-2.5 text-xs text-amber-300 font-mono font-bold outline-none focus:border-amber-400"
