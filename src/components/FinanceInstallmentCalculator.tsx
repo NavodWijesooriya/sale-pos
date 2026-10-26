@@ -33,7 +33,7 @@ export const FinanceInstallmentCalculator: React.FC<FinanceInstallmentCalculator
   const inStockBikes = useMemo(() => bikes.filter(b => b.status === 'In Stock'), [bikes]);
 
   // State
-  const [financeAmount, setFinanceAmount] = useState<number | ''>(defaultAmount ?? 1000000);
+  const [financeAmount, setFinanceAmount] = useState<number | ''>(defaultAmount ?? 0);
   const [annualInterestRate, setAnnualInterestRate] = useState<number | ''>(14);
   const [periodMonths, setPeriodMonths] = useState<number | ''>(36);
   const [calculationMethod, setCalculationMethod] = useState<'reducing' | 'flat'>('reducing');
@@ -66,13 +66,13 @@ export const FinanceInstallmentCalculator: React.FC<FinanceInstallmentCalculator
     const bike = bikes.find(b => b.id === bikeId);
     if (bike) {
       // Default to 80% financing of target price or total cost
-      const target = Number(bike.targetSalePrice) || Number(bike.totalCost) || 1000000;
+      const target = Number(bike.targetSalePrice) || Number(bike.totalCost) || 0;
       setFinanceAmount(Math.round(target * 0.8));
     }
   };
 
   const handleReset = () => {
-    setFinanceAmount(1000000);
+    setFinanceAmount(0);
     setAnnualInterestRate(14);
     setPeriodMonths(36);
     setCalculationMethod('reducing');
