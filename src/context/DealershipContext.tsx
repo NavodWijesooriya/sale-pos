@@ -32,8 +32,8 @@ interface DealershipContextType {
   summary: FinancialSummary;
   isBusinessDataLoading: boolean;
   businessDataError: string | null;
-  activeTab: 'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings';
-  setActiveTab: (tab: 'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings') => void;
+  activeTab: 'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings' | 'commission';
+  setActiveTab: (tab: 'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings' | 'commission') => void;
   
   // Modals & Active selections
   selectedBike: Bike | null;
@@ -100,7 +100,7 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
   const [isBusinessDataLoading, setIsBusinessDataLoading] = useState(true);
   const [businessDataError, setBusinessDataError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings' | 'commission'>('dashboard');
   
   const [selectedBike, setSelectedBike] = useState<Bike | null>(null);
   const [selectedSaleRecord, setSelectedSaleRecord] = useState<SaleRecord | null>(null);
