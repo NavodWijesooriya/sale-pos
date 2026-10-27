@@ -15,6 +15,7 @@ import { InventoryView } from './components/InventoryView';
 import { SalesView } from './components/SalesView';
 import { MonthlySummaryView } from './components/MonthlySummaryView';
 import { SettingsView } from './components/SettingsView';
+import { FinanceCommissionCalculatorView } from './components/FinanceCommissionCalculatorView';
 import { BikeModal } from './components/BikeModal';
 import { SaleModal } from './components/SaleModal';
 import { BikeDetailModal } from './components/BikeDetailModal';
@@ -67,6 +68,7 @@ const MainLayout: React.FC = () => {
         {activeTab === 'inventory' && <InventoryView />}
         {activeTab === 'sales' && <SalesView />}
         {(activeTab === 'summary' || activeTab === 'calculator') && <MonthlySummaryView />}
+        {activeTab === 'commission' && <FinanceCommissionCalculatorView />}
         {activeTab === 'settings' && <SettingsView />}
       </main>
 
