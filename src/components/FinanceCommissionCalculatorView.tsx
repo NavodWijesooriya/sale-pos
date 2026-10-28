@@ -16,21 +16,13 @@ import {
   ArrowUpRight,
   Printer,
   ChevronDown,
-  Info
+  Info,
+  Cloud,
+  CheckCircle2,
+  BookmarkPlus
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
-
-interface SavedCommissionCalc {
-  id: string;
-  date: string;
-  applicantName: string;
-  lenderName: string;
-  referenceNote: string;
-  financeAmount: number;
-  commissionRate: number;
-  commissionAmount: number;
-  payoutMethod: 'separate' | 'deducted';
-}
+import { SavedCommissionCalculation } from '../types';
 
 const DEFAULT_PRESET_RATES = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0];
 
@@ -49,17 +41,26 @@ const COMMON_FINANCE_COMPANIES = [
   'CDB Finance'
 ];
 
-const LOCAL_STORAGE_KEY = 'pos_finance_commission_history_v1';
-
 export const FinanceCommissionCalculatorView: React.FC = () => {
-  const { settings, showToast } = useDealership();
+  const { 
+    settings, 
+    showToast,
+    updateSettings,
+    financeCommissionCalculations,
+    isFinanceCalculationsLoading,
+    saveFinanceCommissionCalculation,
+    deleteFinanceCommissionCalculation,
+    clearFinanceCommissionCalculations
+  } = useDealership();
+
   const symbol = settings.currencySymbol || 'Rs.';
+  const defaultRatePct = Number((settings.defaultFinanceCommissionRate ? settings.defaultFinanceCommissionRate * 100 : 3.0).toFixed(2));
 
   // Calculator State
   const [financeAmount, setFinanceAmount] = useState<number>(1000000);
   const [financeAmountInput, setFinanceAmountInput] = useState<string>('1000000');
-  const [commissionRate, setCommissionRate] = useState<number>(3.0);
-  const [commissionRateInput, setCommissionRateInput] = useState<string>('3.0');
+  const [commissionRate, setCommissionRate] = useState<number>(defaultRatePct);
+  const [commissionRateInput, setCommissionRateInput] = useState<string>(defaultRatePct.toString());
   
   // Optional arrangement details
   const [applicantName, setApplicantName] = useState<string>('');
@@ -68,23 +69,22 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
   const [payoutMethod, setPayoutMethod] = useState<'separate' | 'deducted'>('separate');
   const [showOptionalDetails, setShowOptionalDetails] = useState<boolean>(true);
 
-  // Copy status state
+  // Status states
   const [copied, setCopied] = useState<boolean>(false);
+  const [isSavingRecord, setIsSavingRecord] = useState<boolean>(false);
+  const [isUpdatingDefaultRate, setIsUpdatingDefaultRate] = useState<boolean>(false);
 
-  // History state
-  const [savedHistory, setSavedHistory] = useState<SavedCommissionCalc[]>([]);
-
-  // Load history from localStorage on mount
+  // Sync default rate from settings if changed externally
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) {
-        setSavedHistory(JSON.parse(stored));
+    if (settings.defaultFinanceCommissionRate !== undefined) {
+      const pct = Number((settings.defaultFinanceCommissionRate * 100).toFixed(2));
+      // Only sync if user hasn't typed a different value yet
+      if (commissionRateInput === '3.0' || commissionRateInput === '3') {
+        setCommissionRate(pct);
+        setCommissionRateInput(pct.toString());
       }
-    } catch {
-      // Ignore JSON error
     }
-  }, []);
+  }, [settings.defaultFinanceCommissionRate]);
 
   // Sync inputs with state
   const handleAmountChange = (valStr: string) => {
@@ -125,13 +125,32 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
   const handleReset = () => {
     setFinanceAmount(1000000);
     setFinanceAmountInput('1000000');
-    setCommissionRate(3.0);
-    setCommissionRateInput('3.0');
+    setCommissionRate(defaultRatePct);
+    setCommissionRateInput(defaultRatePct.toString());
     setApplicantName('');
     setLenderName('');
     setReferenceNote('');
     setPayoutMethod('separate');
     showToast('Calculator Reset', 'All fields restored to defaults', 'info');
+  };
+
+  // Save current commission rate as default rate in Firestore
+  const handleSaveDefaultRate = async () => {
+    if (commissionRate < 0 || commissionRate > 100) {
+      showToast('Invalid Rate', 'Please enter a commission rate between 0% and 100%', 'error');
+      return;
+    }
+    setIsUpdatingDefaultRate(true);
+    try {
+      await updateSettings({
+        defaultFinanceCommissionRate: commissionRate / 100
+      });
+      showToast('Default Rate Saved', `Default commission rate set to ${commissionRate}% in Firestore`, 'success');
+    } catch {
+      showToast('Update Failed', 'Could not save default rate to Firestore', 'error');
+    } finally {
+      setIsUpdatingDefaultRate(false);
+    }
   };
 
   // Copy breakdown to clipboard
@@ -162,63 +181,66 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
     });
   };
 
-  // Save calculation to local history
-  const handleSaveToHistory = () => {
+  // Save calculation to Firestore
+  const handleSaveToHistory = async () => {
     if (financeAmount <= 0) {
       showToast('Invalid Amount', 'Please enter a valid finance amount', 'error');
       return;
     }
 
-    const newRecord: SavedCommissionCalc = {
-      id: `calc_${Date.now()}`,
-      date: new Date().toLocaleString(),
-      applicantName: applicantName.trim() || 'Client Financing',
-      lenderName: lenderName.trim() || 'General Lender',
-      referenceNote: referenceNote.trim(),
-      financeAmount,
-      commissionRate,
-      commissionAmount,
-      payoutMethod
-    };
-
-    const updated = [newRecord, ...savedHistory.slice(0, 19)];
-    setSavedHistory(updated);
+    setIsSavingRecord(true);
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      // Ignore storage error
-    }
-    showToast('Saved to History', 'Calculation recorded in your recent list', 'success');
-  };
-
-  // Delete an item from history
-  const handleDeleteHistoryItem = (id: string) => {
-    const updated = savedHistory.filter(item => item.id !== id);
-    setSavedHistory(updated);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      // Ignore storage error
+      await saveFinanceCommissionCalculation({
+        applicantName: applicantName.trim() || 'Client Financing',
+        lenderName: lenderName.trim() || 'General Lender',
+        referenceNote: referenceNote.trim(),
+        financeAmount,
+        commissionRate,
+        commissionAmount,
+        payoutMethod,
+        date: new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      });
+    } catch (err: any) {
+      showToast('Save Failed', err?.message || 'Could not save calculation to Firestore', 'error');
+    } finally {
+      setIsSavingRecord(false);
     }
   };
 
-  // Clear all history
-  const handleClearHistory = () => {
-    if (window.confirm('Clear all saved commission calculations?')) {
-      setSavedHistory([]);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      showToast('History Cleared', 'All saved calculations removed', 'info');
+  // Delete an item from Firestore
+  const handleDeleteHistoryItem = async (id: string) => {
+    try {
+      await deleteFinanceCommissionCalculation(id);
+    } catch (err: any) {
+      showToast('Delete Failed', err?.message || 'Could not delete calculation', 'error');
+    }
+  };
+
+  // Clear all history from Firestore
+  const handleClearHistory = async () => {
+    if (window.confirm('Clear all saved commission calculations from Firestore? This cannot be undone.')) {
+      try {
+        await clearFinanceCommissionCalculations();
+      } catch (err: any) {
+        showToast('Clear Failed', err?.message || 'Could not clear history', 'error');
+      }
     }
   };
 
   // Load a calculation from history
-  const handleLoadHistory = (item: SavedCommissionCalc) => {
+  const handleLoadHistory = (item: SavedCommissionCalculation) => {
     setFinanceAmount(item.financeAmount);
     setFinanceAmountInput(item.financeAmount.toString());
     setCommissionRate(item.commissionRate);
     setCommissionRateInput(item.commissionRate.toString());
-    setApplicantName(item.applicantName === 'Client Financing' ? '' : item.applicantName);
-    setLenderName(item.lenderName === 'General Lender' ? '' : item.lenderName);
+    setApplicantName(item.applicantName === 'Client Financing' ? '' : (item.applicantName || ''));
+    setLenderName(item.lenderName === 'General Lender' ? '' : (item.lenderName || ''));
     setReferenceNote(item.referenceNote || '');
     setPayoutMethod(item.payoutMethod || 'separate');
     showToast('Calculation Loaded', `Loaded ${formatCurrency(item.financeAmount, symbol)} at ${item.commissionRate}%`, 'info');
@@ -229,21 +251,31 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
     window.print();
   };
 
+  const isCurrentRateDefault = Math.abs(commissionRate - defaultRatePct) < 0.001;
+
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn max-w-6xl mx-auto">
       
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold mb-2">
-            <Coins className="w-3.5 h-3.5 text-amber-400" />
-            <span>Third-Party Financing Service</span>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold">
+              <Coins className="w-3.5 h-3.5 text-amber-400" />
+              <span>Third-Party Financing Service</span>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/30 text-xs font-semibold">
+              <Cloud className="w-3.5 h-3.5 text-sky-400" />
+              <span>Firestore Cloud Synced</span>
+            </div>
           </div>
+
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
             Finance Commission <span className="text-amber-400">Calculator</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-            Calculate commissions earned by arranging vehicle financing, leasing, or loan facilities for clients. Completely independent of showroom inventory and vehicle sales.
+            Calculate commissions earned by arranging vehicle financing, leasing, or loan facilities for clients. All rates and calculation records are securely saved to your isolated Firestore account.
           </p>
         </div>
 
@@ -341,17 +373,40 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
               </div>
             </div>
 
-            {/* Input 2: Commission Rate (%) */}
+            {/* Input 2: Commission Rate (%) with Firestore Default Rate support */}
             <div className="space-y-2.5 pt-2 border-t border-slate-800/60">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <label htmlFor="commissionRate" className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
                   <Percent className="w-3.5 h-3.5 text-amber-400" />
                   <span>Custom Commission Rate</span>
                   <span className="text-rose-400">*</span>
                 </label>
-                <span className="text-xs font-mono font-bold text-amber-400">
-                  {commissionRate}%
-                </span>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-amber-400">
+                    {commissionRate}%
+                  </span>
+
+                  {!isCurrentRateDefault && (
+                    <button
+                      type="button"
+                      disabled={isUpdatingDefaultRate}
+                      onClick={handleSaveDefaultRate}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold transition-all disabled:opacity-50"
+                      title="Save this rate as your default in Firestore"
+                    >
+                      <BookmarkPlus className="w-3 h-3 text-amber-400" />
+                      <span>{isUpdatingDefaultRate ? 'Saving...' : 'Set as Default Rate'}</span>
+                    </button>
+                  )}
+
+                  {isCurrentRateDefault && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span>Account Default</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="relative">
@@ -669,7 +724,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                 </div>
               )}
 
-              {/* Actions: Copy & Save */}
+              {/* Actions: Copy & Save to Firestore */}
               <div className="space-y-2 pt-2">
                 <button
                   type="button"
@@ -691,11 +746,12 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
 
                 <button
                   type="button"
+                  disabled={isSavingRecord}
                   onClick={handleSaveToHistory}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700/80 transition-colors min-h-[40px]"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 font-bold text-xs border border-sky-500/40 transition-colors min-h-[40px] disabled:opacity-50"
                 >
-                  <ArrowUpRight className="w-4 h-4 text-sky-400" />
-                  <span>Save to Calculation History</span>
+                  <Cloud className="w-4 h-4 text-sky-400" />
+                  <span>{isSavingRecord ? 'Saving to Firestore...' : 'Save Record to Firestore Cloud'}</span>
                 </button>
               </div>
 
@@ -703,32 +759,47 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
               <div className="flex items-start gap-2 p-3 rounded-xl bg-sky-500/5 border border-sky-500/20 text-[11px] text-slate-400">
                 <Info className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
                 <span>
-                  This calculation is for external third-party financing arrangements and is not linked to showroom stock or vehicle inventory ledger.
+                  Calculation records and custom default rates are preserved in Firestore and remain accessible whenever you log in.
                 </span>
               </div>
 
             </div>
           </div>
 
-          {/* Recent Calculations History Card */}
-          {savedHistory.length > 0 && (
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-slate-400" />
-                  <h3 className="text-xs sm:text-sm font-bold text-white">Recent Calculations</h3>
-                </div>
+          {/* Recent Calculations History Card (Firestore Powered) */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <h3 className="text-xs sm:text-sm font-bold text-white">Firestore Saved Calculations</h3>
+                {financeCommissionCalculations.length > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold font-mono">
+                    {financeCommissionCalculations.length}
+                  </span>
+                )}
+              </div>
+              {financeCommissionCalculations.length > 0 && (
                 <button
                   type="button"
                   onClick={handleClearHistory}
                   className="text-[10px] text-slate-500 hover:text-rose-400 transition-colors"
                 >
-                  Clear History
+                  Clear All
                 </button>
-              </div>
+              )}
+            </div>
 
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                {savedHistory.map((item) => (
+            {isFinanceCalculationsLoading ? (
+              <div className="p-4 text-center text-xs text-slate-400 animate-pulse">
+                Loading saved calculations from Firestore...
+              </div>
+            ) : financeCommissionCalculations.length === 0 ? (
+              <div className="p-4 text-center rounded-xl bg-slate-950/40 border border-slate-800/60 text-xs text-slate-500">
+                No calculations saved yet. Click &quot;Save Record to Firestore Cloud&quot; above to store records.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {financeCommissionCalculations.map((item) => (
                   <div
                     key={item.id}
                     className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors flex items-center justify-between gap-3 text-xs"
@@ -739,7 +810,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                       title="Click to load into calculator"
                     >
                       <div className="flex items-center gap-1.5 font-bold text-white truncate">
-                        <span>{item.applicantName}</span>
+                        <span>{item.applicantName || 'Client Financing'}</span>
                         {item.lenderName && (
                           <span className="text-[10px] text-sky-400 font-normal">({item.lenderName})</span>
                         )}
@@ -750,22 +821,25 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                           = {formatCurrency(item.commissionAmount, symbol)}
                         </span>
                       </div>
-                      <div className="text-[9px] text-slate-500 mt-0.5">{item.date}</div>
+                      <div className="text-[9px] text-slate-500 mt-0.5 flex items-center gap-2">
+                        <span>{item.date}</span>
+                        {item.referenceNote && <span className="truncate max-w-[150px]">Ref: {item.referenceNote}</span>}
+                      </div>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => handleDeleteHistoryItem(item.id)}
                       className="p-2 text-slate-500 hover:text-rose-400 rounded-lg transition-colors shrink-0"
-                      title="Remove from history"
+                      title="Remove from Firestore"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
         </div>
 

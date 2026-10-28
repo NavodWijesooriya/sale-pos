@@ -24,8 +24,9 @@ export const SaleModal: React.FC = () => {
     setIsSaleModalOpen, 
     selectedBike, 
     bikes, 
-    recordSale, 
+    recordSale,
     settings,
+    updateSettings,
     openInvoiceForSale
   } = useDealership();
 
@@ -41,6 +42,10 @@ export const SaleModal: React.FC = () => {
   const [saleDate, setSaleDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [saleAmount, setSaleAmount] = useState<number | ''>('');
   const [financeAmount, setFinanceAmount] = useState<number | ''>('');
+  const [financeCommissionRate, setFinanceCommissionRate] = useState<number | ''>(
+    Number(((settings.defaultFinanceCommissionRate ?? 0.03) * 100).toFixed(2))
+  );
+  const [saveAsDefaultCommissionRate, setSaveAsDefaultCommissionRate] = useState<boolean>(false);
 
   // Customer Details (Printed on Document)
   const [customerName, setCustomerName] = useState<string>('');
@@ -81,6 +86,10 @@ export const SaleModal: React.FC = () => {
     setSaleDate(new Date().toISOString().split('T')[0]);
     setSaleAmount('');
     setFinanceAmount('');
+    setFinanceCommissionRate(
+      Number(((settings.defaultFinanceCommissionRate ?? 0.03) * 100).toFixed(2))
+    );
+    setSaveAsDefaultCommissionRate(false);
     setCustomerName('');
     setCustomerAddress('');
     setCustomerPhone('');
@@ -133,6 +142,7 @@ export const SaleModal: React.FC = () => {
   const totalCost = activeBike.totalCost;
   const numericSaleAmount = Number(saleAmount) || 0;
   const numericFinanceAmount = Number(financeAmount) || 0;
+  const numericCommissionRate = Number(financeCommissionRate) >= 0 ? Number(financeCommissionRate) / 100 : 0.03;
 
   const financials = computeSaleFinancials({
     saleMethod,
@@ -140,7 +150,7 @@ export const SaleModal: React.FC = () => {
     purchasePrice: costPrice,
     totalRepairCost: totalOtherCosts,
     financeAmount: numericFinanceAmount,
-    financeCommissionRate: 0.03
+    financeCommissionRate: numericCommissionRate
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,10 +205,24 @@ export const SaleModal: React.FC = () => {
         setFormError(`Please specify a valid finance amount between ${symbol} 1 and ${formatCurrency(Number(saleAmount), symbol)}.`);
         return;
       }
+      if (financeCommissionRate === '' || Number(financeCommissionRate) < 0 || Number(financeCommissionRate) > 100) {
+        setFormError('Please specify a valid finance commission rate between 0% and 100%.');
+        return;
+      }
     }
 
     setIsSaving(true);
     try {
+      if (saleMethod === 'Finance' && saveAsDefaultCommissionRate && Number(financeCommissionRate) >= 0) {
+        try {
+          await updateSettings({
+            defaultFinanceCommissionRate: Number(financeCommissionRate) / 100
+          });
+        } catch (settingsErr) {
+          console.error('Failed to update default commission rate in Firestore settings', settingsErr);
+        }
+      }
+
       const saleRecord = await recordSale(activeBike.id, {
       saleDate,
       saleMethod,
@@ -207,7 +231,7 @@ export const SaleModal: React.FC = () => {
       totalRepairCost: totalOtherCosts,
       totalCost: financials.totalCost,
       financeAmount: saleMethod === 'Finance' ? financials.financeAmount : 0,
-      financeCommissionRate: saleMethod === 'Finance' ? 0.03 : 0,
+      financeCommissionRate: saleMethod === 'Finance' ? numericCommissionRate : 0,
       financeCommission: financials.financeCommission,
       customerDeposit: financials.customerDeposit,
       totalCashReceived: financials.totalCashReceived,
@@ -472,6 +496,90 @@ export const SaleModal: React.FC = () => {
                 </div>
               </div>
 
+              {/* Finance Commission Rate & Automatic Calculation Feature */}
+              <div className="p-3.5 sm:p-4 rounded-xl bg-slate-900/90 border border-amber-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Percent className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-bold text-white">Finance Commission Rate</span>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-amber-400">
+                    {financeCommissionRate || 0}% Rate
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      Commission Rate (%) *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        required
+                        placeholder="e.g. 3.0"
+                        value={financeCommissionRate}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFinanceCommissionRate(val === '' ? '' : Number(val));
+                        }}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-8 py-2 text-xs text-amber-300 font-mono font-bold outline-none focus:border-amber-400"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
+                    </div>
+
+                    {/* Quick rate preset chips */}
+                    <div className="flex items-center gap-1 flex-wrap mt-2">
+                      {[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0].map((rate) => (
+                        <button
+                          key={rate}
+                          type="button"
+                          onClick={() => setFinanceCommissionRate(rate)}
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all border ${
+                            Number(financeCommissionRate) === rate
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
+                              : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700/60'
+                          }`}
+                        >
+                          {rate.toFixed(1)}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Real-time Calculated Commission Card */}
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+                    <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                      <span>Auto Calculated Commission:</span>
+                      <Coins className="w-3.5 h-3.5 text-amber-400" />
+                    </div>
+                    <div className="text-base sm:text-lg font-black text-amber-400 font-mono">
+                      +{formatCurrency(financials.financeCommission, symbol)}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Based on {formatCurrency(numericFinanceAmount, symbol)} at {financeCommissionRate || 0}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save as default rate option */}
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between flex-wrap gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={saveAsDefaultCommissionRate}
+                      onChange={(e) => setSaveAsDefaultCommissionRate(e.target.checked)}
+                      className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30 bg-slate-950"
+                    />
+                    <span>Save {financeCommissionRate || 0}% as default rate for future finance sales in Firestore</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500">Firestore isolated</span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
                   <label className="block text-[11px] text-slate-400 mb-1">Agreement / File Reference Number</label>
@@ -720,7 +828,9 @@ export const SaleModal: React.FC = () => {
                   {formatCurrency(financials.totalCashReceived, symbol)}
                 </div>
                 {saleMethod === 'Finance' && (
-                  <div className="text-[9px] text-amber-400 mt-0.5 font-bold">Includes 3% Commission</div>
+                  <div className="text-[9px] text-amber-400 mt-0.5 font-bold">
+                    Includes {financeCommissionRate || 0}% Commission (+{formatCurrency(financials.financeCommission, symbol)})
+                  </div>
                 )}
               </div>
             </div>
@@ -743,7 +853,7 @@ export const SaleModal: React.FC = () => {
                 <div className="text-[10px] text-slate-400 mt-0.5">
                   {saleMethod === 'Cash'
                     ? 'Sale Amount − Total Cost'
-                    : 'Sale Amount + 3% Comm − Total Cost'}
+                    : `Sale Amount + ${financeCommissionRate || 0}% Comm − Total Cost`}
                 </div>
               </div>
             </div>
