@@ -57,8 +57,8 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
   const defaultRatePct = Number((settings.defaultFinanceCommissionRate ? settings.defaultFinanceCommissionRate * 100 : 3.0).toFixed(2));
 
   // Calculator State
-  const [financeAmount, setFinanceAmount] = useState<number>(1000000);
-  const [financeAmountInput, setFinanceAmountInput] = useState<string>('1000000');
+  const [financeAmount, setFinanceAmount] = useState<number>(0);
+  const [financeAmountInput, setFinanceAmountInput] = useState<string>('0');
   const [commissionRate, setCommissionRate] = useState<number>(defaultRatePct);
   const [commissionRateInput, setCommissionRateInput] = useState<string>(defaultRatePct.toString());
   
@@ -123,8 +123,8 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
 
   // Reset all fields to defaults
   const handleReset = () => {
-    setFinanceAmount(1000000);
-    setFinanceAmountInput('1000000');
+    setFinanceAmount(0);
+    setFinanceAmountInput('0');
     setCommissionRate(defaultRatePct);
     setCommissionRateInput(defaultRatePct.toString());
     setApplicantName('');
