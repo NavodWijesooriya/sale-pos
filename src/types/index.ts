@@ -135,6 +135,22 @@ export interface DealershipSettings {
   hideDashboardPriceCards: boolean;
 }
 
+export interface SavedCommissionCalculation {
+  id: string;
+  applicantName?: string;
+  lenderName?: string;
+  referenceNote?: string;
+  financeAmount: number;
+  commissionRate: number; // percentage value, e.g. 3.0 for 3%
+  commissionAmount: number;
+  payoutMethod: 'separate' | 'deducted';
+  date: string;
+  ownerUid?: string;
+  createdAt?: any;
+  updatedAt?: any;
+  timestamp?: number;
+}
+
 export interface MonthlySummary {
   monthKey: string;           // "YYYY-MM" e.g. "2026-09"
   monthLabel: string;         // e.g. "September 2026"

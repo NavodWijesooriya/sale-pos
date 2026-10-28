@@ -440,7 +440,7 @@ export const BikeDetailModal: React.FC = () => {
                       <div className="font-bold text-amber-400 font-mono">{formatCurrency(selectedBike.sale.financeAmount, symbol)}</div>
                     </div>
                     <div>
-                      <span className="text-amber-300 text-[10px] font-bold">3% Finance Commission:</span>
+                      <span className="text-amber-300 text-[10px] font-bold">{((selectedBike.sale.financeCommissionRate ?? 0.03) * 100).toFixed(1).replace(/\.0$/, '')}% Finance Commission:</span>
                       <div className="font-black text-amber-400 font-mono">+{formatCurrency(selectedBike.sale.financeCommission, symbol)}</div>
                     </div>
                     <div>

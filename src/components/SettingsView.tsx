@@ -48,6 +48,9 @@ export const SettingsView: React.FC = () => {
   const [taxNumber, setTaxNumber] = useState(settings.taxNumber || '');
   const [startingCapital, setStartingCapital] = useState(String(settings.startingCapital));
   const [currencySymbol, setCurrencySymbol] = useState(settings.currencySymbol);
+  const [defaultFinanceCommissionRate, setDefaultFinanceCommissionRate] = useState(
+    String(Number(((settings.defaultFinanceCommissionRate ?? 0.03) * 100).toFixed(2)))
+  );
   const [theme, setTheme] = useState<'dark' | 'light'>(settings.theme);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
@@ -60,6 +63,7 @@ export const SettingsView: React.FC = () => {
     setTaxNumber(settings.taxNumber || '');
     setStartingCapital(String(settings.startingCapital));
     setCurrencySymbol(settings.currencySymbol);
+    setDefaultFinanceCommissionRate(String(Number(((settings.defaultFinanceCommissionRate ?? 0.03) * 100).toFixed(2))));
     setTheme(settings.theme);
   }, [settings]);
 
@@ -344,12 +348,23 @@ export const SettingsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Finance Commission Formula</label>
-              <div className="p-3 min-h-[44px] rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
-                <span>Dealer Finance Commission:</span>
-                <span className="font-black text-amber-400 px-2.5 py-1 rounded bg-amber-500/20 border border-amber-500/30">
-                   Financed Amount
-                </span>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Default Finance Commission Rate (%)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={defaultFinanceCommissionRate}
+                  onChange={(e) => setDefaultFinanceCommissionRate(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-10 py-2.5 text-xs text-amber-400 font-mono font-bold outline-none focus:border-amber-500"
+                />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
+              </div>
+              <div className="text-[10px] text-slate-400 mt-1">
+                Default rate used for vehicle finance sales and commission calculator (saved in Firestore).
               </div>
             </div>
           </div>
