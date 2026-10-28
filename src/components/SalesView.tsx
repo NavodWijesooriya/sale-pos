@@ -441,9 +441,8 @@ export const SalesView: React.FC = () => {
                   />
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-black font-mono tracking-wider bg-sky-500/15 text-sky-300 border border-sky-500/40 shadow-sm">
-                        <span className="text-[9px] uppercase font-bold text-slate-400">NO:</span>
-                        {bike.regPlate}
+                      <span className="text-xs text-slate-400 font-medium">
+                        No: <strong className="text-slate-200 font-semibold">{bike.regPlate}</strong>
                       </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                         isFinance
@@ -468,7 +467,7 @@ export const SalesView: React.FC = () => {
                       onClick={() => openDetailModalForBike(bike)}
                       className="text-base font-black text-white hover:text-sky-400 cursor-pointer"
                     >
-                      {sale.bikeSummary}
+                      {sale.bikeSummary} ({bike.regPlate})
                     </h3>
 
                     <div className="text-xs text-slate-300 flex flex-wrap items-center gap-2">

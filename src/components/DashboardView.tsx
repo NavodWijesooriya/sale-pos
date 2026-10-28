@@ -286,13 +286,6 @@ export const DashboardView: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="absolute top-3 right-3">
-                        <span className="px-2.5 py-1 rounded-md text-xs font-black tracking-wider shadow-lg bg-slate-950/90 text-sky-300 border border-sky-400/50 backdrop-blur-md font-mono flex items-center gap-1">
-                          <span className="text-[9px] uppercase font-bold text-slate-400">NO:</span>
-                          <span>{bike.regPlate}</span>
-                        </span>
-                      </div>
-
                       <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-slate-300 font-medium">
                         <span className="bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 text-slate-300 text-[11px] font-mono">
                           {bike.engineCapacityCc} cc
@@ -306,23 +299,20 @@ export const DashboardView: React.FC = () => {
                     {/* Content */}
                     <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                       <div>
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black font-mono tracking-wider bg-sky-500/15 text-sky-300 border border-sky-500/40 shadow-sm">
-                            <span className="text-[10px] uppercase font-bold text-slate-400">NO:</span>
-                            {bike.regPlate}
-                          </span>
+                        <div className="flex items-center justify-between gap-2 mb-1.5 text-xs text-slate-400">
+                          <span>No: <strong className="text-slate-200 font-medium">{bike.regPlate}</strong></span>
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
                             {bike.condition}
                           </span>
                         </div>
                         <h3 
                           onClick={() => openDetailModalForBike(bike)}
-                          className="text-base font-black text-white hover:text-sky-400 cursor-pointer transition-colors leading-tight truncate"
-                          title={`${bike.year} ${bike.make} ${bike.model}`}
+                          className="text-base font-black text-white hover:text-sky-400 cursor-pointer transition-colors leading-tight"
+                          title={`${bike.year} ${bike.make} ${bike.model} (${bike.regPlate})`}
                         >
-                          {bike.year} {bike.make} {bike.model}
+                          {bike.year} {bike.make} {bike.model} ({bike.regPlate})
                         </h3>
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-mono">
+                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
                           <span>Brand: <strong className="text-slate-200">{bike.make}</strong></span>
                           {bike.mileage > 0 && (
                             <>
