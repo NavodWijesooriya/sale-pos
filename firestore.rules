@@ -25,6 +25,13 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function isSupportedBike(data) {
+      return data.vehicleType == 'Bike'
+        && data.make == 'Ather'
+        && data.model in ['Ather 450X LR', 'Ather 450X HR', 'Ather Rizta S']
+        && data.condition == 'Brand New';
+    }
+
     function isPendingRegistrationRequest(userId) {
       return isOwnUser(userId)
         && request.resource.data.role == 'user'
@@ -61,7 +68,10 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == resource.data.role));
 
       match /{collectionName}/{documentId} {
-        allow read, write: if isApprovedUser(userId);
+        allow read: if isApprovedUser(userId);
+        allow create, update: if isApprovedUser(userId)
+          && (collectionName != 'bikes' || isSupportedBike(request.resource.data));
+        allow delete: if isApprovedUser(userId);
       }
 
       match /{collectionName}/{documentId}/{nestedDocument=**} {

@@ -8,6 +8,7 @@ import {
   OtherCostItem, 
   AuthUser,
   SavedCommissionCalculation,
+  isSupportedBike,
 } from '../types';
 import { sampleBikes, initialDealershipSettings } from '../data/initialData';
 import { calculateFinancialSummary, calculateTotalOtherCosts, calculateTotalCost, formatCurrency } from '../utils/formatters';
@@ -164,18 +165,20 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
     const unsubscribeBikes = onSnapshot(
       bikesCollection,
       (snapshot) => {
-        setBikes(snapshot.docs.map((bikeDoc) => {
+        setBikes(snapshot.docs.flatMap((bikeDoc) => {
           const data = bikeDoc.data();
+          if (!isSupportedBike(data)) return [];
           const toIsoString = (value: any) => value?.toDate ? value.toDate().toISOString() : value || '';
-          return {
+          return [{
             ...data,
             id: bikeDoc.id,
-            vehicleType: data.vehicleType === 'Car' ? 'Light Vehicle' : data.vehicleType || 'Bike',
-            category: data.category === 'Auto' ? 'Auto' : 'Manual',
-            condition: data.condition === 'Brand New' ? 'Brand New' : 'Used',
+            vehicleType: 'Bike',
+            make: 'Ather',
+            category: 'Electric',
+            condition: 'Brand New',
             createdAt: toIsoString(data.createdAt),
             updatedAt: toIsoString(data.updatedAt)
-          } as Bike;
+          } as Bike];
         }));
         bikesLoaded = true;
         finishLoading();
@@ -232,7 +235,9 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
           ));
           const existingBikes = await getDocs(bikesCollection);
           const existingIds = new Set(existingBikes.docs.map((bikeDoc) => bikeDoc.id));
-          const recordsToMigrate = legacyBikes.docs.filter((bikeDoc) => !existingIds.has(bikeDoc.id));
+          const recordsToMigrate = legacyBikes.docs.filter((bikeDoc) =>
+            !existingIds.has(bikeDoc.id) && isSupportedBike(bikeDoc.data())
+          );
 
           for (let offset = 0; offset < recordsToMigrate.length; offset += 450) {
             const batch = writeBatch(db);
@@ -558,6 +563,16 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const addBike = async (data: Partial<Bike>): Promise<Bike> => {
     if (!user) throw new Error('You must be signed in to add a vehicle.');
+    const model = data.model?.trim();
+    const supportedBike = {
+      vehicleType: data.vehicleType || 'Bike',
+      make: data.make?.trim() || 'Ather',
+      model,
+      condition: data.condition || 'Brand New'
+    };
+    if (!model || !isSupportedBike(supportedBike)) {
+      throw new Error('Only brand-new Ather 450X LR, Ather 450X HR, and Ather Rizta S electric bikes can be added.');
+    }
     const newId = doc(collection(db, 'users', user.uid, 'bikes')).id;
     const otherCosts: OtherCostItem[] = data.repairCosts || [];
     const totalOtherCosts = calculateTotalOtherCosts(otherCosts);
@@ -572,17 +587,17 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
       createdBy: user?.uid,
       createdByName: user?.displayName || user?.email?.split('@')[0] || user?.uid,
       createdByEmail: user?.email || '',
-      vehicleType: data.vehicleType || 'Bike',
-      make: data.make?.trim() || 'Honda',
-      model: data.model?.trim() || 'Vehicle',
+      vehicleType: 'Bike',
+      make: 'Ather',
+      model,
       year: Number(data.year) || new Date().getFullYear(),
-      category: data.category || 'Manual',
+      category: 'Electric',
       vin: data.vin?.toUpperCase().trim() || `VIN-${Date.now().toString().slice(-8)}`,
       regPlate: data.regPlate?.toUpperCase().trim() || 'UNREG',
       mileage: Number(data.mileage) || 0,
       color: data.color?.trim() || 'Black',
-      engineCapacityCc: Number(data.engineCapacityCc) || 125,
-      condition: data.condition || 'Used',
+      engineCapacityCc: 0,
+      condition: 'Brand New',
       purchasePrice: costPrice,
       purchaseDate: data.purchaseDate || new Date().toISOString().split('T')[0],
       supplierOrSeller: data.supplierName?.trim() || data.supplierOrSeller?.trim() || 'Direct Purchase',
@@ -637,6 +652,9 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
       imageUrls: updates.imageUrls !== undefined ? updates.imageUrls : bike.imageUrls,
       updatedAt: new Date().toISOString()
     };
+    if (!isSupportedBike(updated)) {
+      throw new Error('Only brand-new Ather 450X LR, Ather 450X HR, and Ather Rizta S electric bikes can be saved.');
+    }
 
     if (updated.sale) {
       const totalOtherCosts = calculateTotalOtherCosts(newOtherCosts);
@@ -943,7 +961,7 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
       const resetSettings = { ...initialDealershipSettings, dealershipName: profile?.businessName || '' };
       await persistSettings(resetSettings);
       setSettings(resetSettings);
-      showToast('Reset Complete', 'Loaded realistic dealership sales records (Cars & Bikes).', 'info');
+      showToast('Reset Complete', 'Loaded sample inventory for the supported Ather electric bikes.', 'info');
     } catch (error) {
       console.error('Failed to reset dealership data', error);
       showToast('Reset Failed', 'Dealership data could not be fully saved. Please retry.', 'error');
@@ -989,6 +1007,9 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
       const data = JSON.parse(jsonStr);
       if (Array.isArray(data.bikes)) {
         if (!user) throw new Error('You must be signed in to import business records.');
+        if (!data.bikes.every(isSupportedBike)) {
+          throw new Error('Backup contains unsupported vehicles. Only brand-new Ather 450X LR, Ather 450X HR, and Ather Rizta S electric bikes are supported.');
+        }
         const importedIds = new Map(data.bikes.map((bike: Bike) => [bike.id, doc(collection(db, 'users', user.uid, 'bikes')).id]));
         const importedBikes = data.bikes.map((bike: Bike) => ({
           ...bike,
@@ -1008,7 +1029,7 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
       throw new Error('Invalid JSON structure');
     } catch (e) {
       console.error('Failed to import dealership backup', e);
-      showToast('Import Error', 'File is corrupted or has an invalid structure.', 'error');
+      showToast('Import Error', e instanceof Error ? e.message : 'File is corrupted or has an invalid structure.', 'error');
       return false;
     }
   };

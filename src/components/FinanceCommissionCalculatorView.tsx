@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDealership } from '../context/DealershipContext';
 import { 
@@ -256,7 +257,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn max-w-6xl mx-auto">
       
-      {/* Header Section */}
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -302,13 +303,12 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Grid: Inputs on Left, Results on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left Column: Calculation Parameters (7 Cols) */}
+    
         <div className="lg:col-span-7 space-y-5">
           
-          {/* Card 1: Core Finance & Commission Inputs */}
+        
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-6">
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
               <div className="flex items-center gap-2">
@@ -320,7 +320,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
               <span className="text-[11px] font-semibold text-slate-400">Step 1 & 2</span>
             </div>
 
-            {/* Input 1: Finance Amount */}
+          
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <label htmlFor="financeAmount" className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
@@ -347,7 +347,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                 />
               </div>
 
-              {/* Quick Increment Buttons */}
+             
               <div className="flex items-center gap-1.5 flex-wrap pt-1">
                 <span className="text-[10px] uppercase font-bold text-slate-500 mr-1">Quick Add:</span>
                 {[50000, 100000, 500000, 1000000].map((step) => (
@@ -373,7 +373,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
               </div>
             </div>
 
-            {/* Input 2: Commission Rate (%) with Firestore Default Rate support */}
+           
             <div className="space-y-2.5 pt-2 border-t border-slate-800/60">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <label htmlFor="commissionRate" className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
@@ -426,7 +426,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Commission Rate Presets */}
+            
               <div className="space-y-1.5 pt-1">
                 <div className="text-[10px] uppercase font-bold text-slate-500">Quick Select Rate:</div>
                 <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
@@ -451,7 +451,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
               </div>
             </div>
 
-            {/* Payout Mechanism Selector */}
+           
             <div className="space-y-2 pt-2 border-t border-slate-800/60">
               <label className="text-xs font-bold text-slate-300">Commission Settlement Method</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -499,7 +499,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
 
           </div>
 
-          {/* Card 2: Optional Client & Institution Reference */}
+          
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
             <button
               type="button"
@@ -568,7 +568,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
             )}
           </div>
 
-          {/* Quick Rate Comparison Matrix */}
+        
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -638,13 +638,13 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
 
         </div>
 
-        {/* Right Column: Live Commission Result & Action Card (5 Cols) */}
+        
         <div className="lg:col-span-5 space-y-5 lg:sticky lg:top-24">
           
-          {/* Main Hero Card: Commission Earned */}
+        
           <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-amber-500/10 relative overflow-hidden">
             
-            {/* Background Glow */}
+            
             <div className="absolute -top-16 -right-16 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -660,7 +660,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                 </span>
               </div>
 
-              {/* Large Hero Amount */}
+              
               <div className="space-y-1">
                 <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight font-mono text-emerald-400">
                   {formatCurrency(commissionAmount, symbol)}
@@ -670,7 +670,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Detailed Breakdown Box */}
+              
               <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 space-y-3 font-mono text-xs">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="font-sans">Gross Finance Amount</span>
@@ -700,7 +700,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Client & Bank Tag if filled */}
+              
               {(applicantName || lenderName) && (
                 <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/70 text-xs space-y-1">
                   {applicantName && (
@@ -724,7 +724,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                 </div>
               )}
 
-              {/* Actions: Copy & Save to Firestore */}
+              
               <div className="space-y-2 pt-2">
                 <button
                   type="button"
@@ -755,7 +755,6 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
                 </button>
               </div>
 
-              {/* Informative Note */}
               <div className="flex items-start gap-2 p-3 rounded-xl bg-sky-500/5 border border-sky-500/20 text-[11px] text-slate-400">
                 <Info className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
                 <span>
@@ -766,7 +765,7 @@ export const FinanceCommissionCalculatorView: React.FC = () => {
             </div>
           </div>
 
-          {/* Recent Calculations History Card (Firestore Powered) */}
+          
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

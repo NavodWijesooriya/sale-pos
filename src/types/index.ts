@@ -1,8 +1,22 @@
-export type VehicleType = 'Light Vehicle' | 'Bike' | 'Three-Wheeler' | 'Heavy Vehicle';
+export type VehicleType = 'Bike';
 
-export type BikeCategory = 'Auto' | 'Manual';
+export type BikeCategory = 'Electric';
 
-export type BikeCondition = 'Brand New' | 'Used';
+export type BikeCondition = 'Brand New';
+
+export const SUPPORTED_BIKE_MODELS = ['Ather 450X LR', 'Ather 450X HR', 'Ather Rizta S'] as const;
+
+export const isSupportedBike = (bike: {
+  vehicleType?: unknown;
+  make?: unknown;
+  model?: unknown;
+  condition?: unknown;
+}): boolean =>
+  bike.vehicleType === 'Bike'
+  && bike.make === 'Ather'
+  && typeof bike.model === 'string'
+  && SUPPORTED_BIKE_MODELS.some((model) => model === bike.model)
+  && bike.condition === 'Brand New';
 
 export type BikeStatus = 'In Stock' | 'Reserved' | 'Sold';
 

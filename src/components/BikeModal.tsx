@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDealership } from '../context/DealershipContext';
 import { useAuth } from '../../context/AuthContext';
-import { BikeCategory, BikeCondition, OtherCostItem, OtherCostCategory, VehicleType } from '../types';
+import { Bike, BikeCategory, BikeCondition, OtherCostItem, OtherCostCategory, SUPPORTED_BIKE_MODELS } from '../types';
 import { 
   X, 
   Plus, 
@@ -30,10 +30,6 @@ import { uploadVehiclePhoto, validateImageFile } from '../utils/imageUpload';
 interface BikeModalProps {
   isEdit?: boolean;
 }
-
-const BIKE_MAKES = ['Honda', 'Yamaha', 'Bajaj', 'TVS', 'Hero', 'Suzuki', 'Kawasaki', 'KTM', 'Royal Enfield'];
-const CAR_MAKES = ['Toyota', 'Suzuki', 'Nissan', 'Honda', 'Hyundai', 'Mitsubishi', 'Kia', 'Daihatsu', 'Mazda', 'Mercedes-Benz'];
-const VEHICLE_TYPES: VehicleType[] = ['Light Vehicle', 'Bike', 'Three-Wheeler', 'Heavy Vehicle'];
 
 const OTHER_COST_CATEGORIES: { label: string; category: OtherCostCategory; icon: any }[] = [
   { label: 'Repair', category: 'Repair', icon: Wrench },
@@ -66,12 +62,10 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
   const symbol = settings.currencySymbol;
 
   // Basic Details
-  const [vehicleType, setVehicleType] = useState<VehicleType>('Bike');
-  const [make, setMake] = useState('Honda');
-  const [model, setModel] = useState('');
+  const [model, setModel] = useState<string>(SUPPORTED_BIKE_MODELS[0]);
   const [year, setYear] = useState<number | ''>(new Date().getFullYear());
-  const [category, setCategory] = useState<BikeCategory>('Manual');
-  const [condition, setCondition] = useState<BikeCondition>('Used');
+  const category: BikeCategory = 'Electric';
+  const condition: BikeCondition = 'Brand New';
   const [regPlate, setRegPlate] = useState('');
   const [isUnregistered, setIsUnregistered] = useState(false);
 
@@ -104,7 +98,6 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
   const [vin, setVin] = useState('');
   const [mileage, setMileage] = useState<number | ''>('');
   const [color, setColor] = useState('Black');
-  const [engineCapacityCc, setEngineCapacityCc] = useState<number | ''>(125);
   const [notes, setNotes] = useState('');
 
   // Error & Saving States
@@ -114,18 +107,13 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
 
   useEffect(() => {
     if (isEdit && selectedBike) {
-      setVehicleType(selectedBike.vehicleType || 'Bike');
-      setMake(selectedBike.make);
       setModel(selectedBike.model);
       setYear(selectedBike.year);
-      setCategory(selectedBike.category);
       setVin(selectedBike.vin);
       setRegPlate(selectedBike.regPlate);
       setIsUnregistered(selectedBike.regPlate.toUpperCase() === 'UNREGISTERED' || selectedBike.regPlate === 'UNREG');
       setMileage(selectedBike.mileage || '');
       setColor(selectedBike.color);
-      setEngineCapacityCc(selectedBike.engineCapacityCc || '');
-      setCondition(selectedBike.condition);
       setCostPrice(selectedBike.purchasePrice);
       setPurchaseDate(selectedBike.purchaseDate);
       setTargetSalePrice(selectedBike.targetSalePrice);
@@ -148,18 +136,13 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
       setOtherCosts(selectedBike.repairCosts || []);
       setShowAdvancedSpecs(!!(selectedBike.vin || selectedBike.notes));
     } else if (!isEdit) {
-      setVehicleType('Bike');
-      setMake('Honda');
-      setModel('');
+      setModel(SUPPORTED_BIKE_MODELS[0]);
       setYear(new Date().getFullYear());
-      setCategory('Manual');
       setVin('');
       setRegPlate('');
       setIsUnregistered(false);
       setMileage('');
       setColor('Black');
-      setEngineCapacityCc(125);
-      setCondition('Used');
       setCostPrice('');
       setPurchaseDate(new Date().toISOString().split('T')[0]);
       setSupplierName('');
@@ -330,17 +313,17 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
     const primaryImg = photos[0] || defaultImg;
     const finalSalePrice = numSalePrice > 0 ? numSalePrice : Math.round(totalCost * 1.2);
 
-    const bikePayload = {
-      vehicleType,
-      make: make.trim(),
-      model: model.trim(),
+    const bikePayload: Partial<Bike> = {
+      vehicleType: 'Bike',
+      make: 'Ather',
+      model,
       year: Number(year) || new Date().getFullYear(),
       category,
       vin: vin.trim() || (isEdit && selectedBike ? selectedBike.vin : `VIN-${Date.now().toString().slice(-8)}`),
       regPlate: finalRegPlate,
       mileage: Number(mileage) || 0,
       color: color.trim() || 'Black',
-      engineCapacityCc: Number(engineCapacityCc) || 125,
+      engineCapacityCc: 0,
       condition,
       purchasePrice: numCostPrice,
       purchaseDate,
@@ -452,69 +435,26 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
               <span className="text-[11px] text-slate-400">Basic Info</span>
             </div>
 
-            {/* Vehicle Type Switcher */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">Vehicle Type *</label>
-              <div className="grid grid-cols-2 gap-2">
-                {VEHICLE_TYPES.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setVehicleType(type)}
-                    className={`flex items-center justify-center py-2 px-3 rounded-xl border font-bold text-xs transition-all ${
-                      vehicleType === type
-                        ? 'bg-sky-500 text-slate-950 border-sky-400 shadow-md font-black'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick Brand selection */}
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">Brand / Make *</label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {(vehicleType === 'Bike' ? BIKE_MAKES : CAR_MAKES).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMake(m)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                      make === m 
-                        ? 'bg-sky-500 text-slate-950 shadow-sm' 
-                        : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-              <input
-                type="text"
-                required
-                placeholder="Or type custom brand..."
-                value={make}
-                onChange={(e) => setMake(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500 font-bold"
-              />
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">Brand / Make</label>
+              <div className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white font-bold">Ather</div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
                 <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  Model Name & Variant *
+                  Ather EV Bike Model *
                 </label>
-                <input
-                  type="text"
+                <select
                   required
-                  placeholder="e.g. Pulsar 150, FZ-S V3, Activa 6G, Dio, Wagon R, Alto"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500 font-bold placeholder-slate-600"
-                />
+                >
+                  {SUPPORTED_BIKE_MODELS.map((bikeModel) => (
+                    <option key={bikeModel} value={bikeModel}>{bikeModel}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -535,14 +475,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 mb-1">Vehicle Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as BikeCategory)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500"
-                >
-                  <option value="Auto">Auto</option>
-                  <option value="Manual">Manual</option>
-                </select>
+                <div className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white font-bold">Electric Bike</div>
               </div>
 
               <div>
@@ -575,14 +508,7 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 mb-1">Condition</label>
-                <select
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value as BikeCondition)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-sky-500 font-bold"
-                >
-                  <option value="Used">Used / Registered</option>
-                  <option value="Brand New">Brand New</option>
-                </select>
+                <div className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-emerald-300 font-bold">Brand New</div>
               </div>
             </div>
           </div>
@@ -1151,15 +1077,8 @@ export const BikeModal: React.FC<BikeModalProps> = ({ isEdit = false }) => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Engine Capacity (CC)</label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 150"
-                      value={engineCapacityCc}
-                      onWheel={(e) => e.currentTarget.blur()}
-                      onChange={(e) => setEngineCapacityCc(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
-                    />
+                    <label className="block text-[11px] text-slate-400 mb-1">Powertrain</label>
+                    <div className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-emerald-300 font-bold">Electric</div>
                   </div>
                 </div>
 

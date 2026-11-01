@@ -263,8 +263,8 @@ export const BikeDetailModal: React.FC = () => {
           {/* Quick Specs Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs">
             <div>
-              <span className="text-slate-400 text-[10px] uppercase font-semibold">Engine Capacity</span>
-              <div className="text-sm font-bold text-white mt-0.5">{selectedBike.engineCapacityCc} cc</div>
+              <span className="text-slate-400 text-[10px] uppercase font-semibold">Powertrain</span>
+              <div className="text-sm font-bold text-white mt-0.5">Electric</div>
             </div>
             <div>
               <span className="text-slate-400 text-[10px] uppercase font-semibold">Mileage</span>

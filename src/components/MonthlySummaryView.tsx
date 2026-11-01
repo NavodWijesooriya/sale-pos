@@ -660,7 +660,7 @@ export const MonthlySummaryView: React.FC = () => {
                   {soldVehiclesInMonth.map((bike) => {
                     const sale = bike.sale!;
                     const vehicleType = bike.vehicleType || 'Bike';
-                    const vehicleIcon = vehicleType === 'Bike' ? '🏍️' : vehicleType === 'Three-Wheeler' ? '🛺' : vehicleType === 'Heavy Vehicle' ? '🚚' : '🚗';
+                    const vehicleIcon = '🏍️';
                     const isFinance = sale.saleMethod === 'Finance';
                     const vehicleCost = Number(sale.purchasePrice ?? bike.purchasePrice) || 0;
                     const expenses = Number(sale.totalRepairCost) || 0;
@@ -748,7 +748,7 @@ export const MonthlySummaryView: React.FC = () => {
                       {soldVehiclesInMonth.map((bike) => {
                         const sale = bike.sale!;
                         const vehicleType = bike.vehicleType || 'Bike';
-                        const vehicleIcon = vehicleType === 'Bike' ? '🏍️' : vehicleType === 'Three-Wheeler' ? '🛺' : vehicleType === 'Heavy Vehicle' ? '🚚' : '🚗';
+                        const vehicleIcon = '🏍️';
                         const isFinance = sale.saleMethod === 'Finance';
                         const vehicleCost = Number(sale.purchasePrice ?? bike.purchasePrice) || 0;
                         const expenses = Number(sale.totalRepairCost) || 0;

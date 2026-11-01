@@ -90,7 +90,7 @@ const VehicleDetails: React.FC<{ bike?: Bike; sale: SaleRecord }> = ({ bike, sal
       <Detail label="Chassis Number" value={bike?.vin} />
       <Detail label="Engine Number" value="Not recorded" />
       <Detail label="Colour" value={bike?.color} />
-      {bike?.engineCapacityCc ? <Detail label="Engine Capacity" value={`${bike.engineCapacityCc.toLocaleString()} cc`} /> : null}
+      <Detail label="Powertrain" value="Electric" />
       {bike?.mileage ? <Detail label="Mileage" value={`${bike.mileage.toLocaleString()} km`} /> : null}
       {bike?.notes ? (
         <div style={{ gridColumn: '1 / -1' }}>

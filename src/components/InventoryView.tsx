@@ -121,8 +121,7 @@ export const InventoryView: React.FC = () => {
 
   const categories = [
     'All',
-    'Auto',
-    'Manual'
+    'Electric'
   ];
 
   const handleConfirmDelete = async () => {
@@ -398,7 +397,7 @@ export const InventoryView: React.FC = () => {
 
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-300 font-medium">
                     <span className="bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 text-slate-300 text-[11px]">
-                      {bike.engineCapacityCc} cc
+                      Electric
                     </span>
                     <span className="bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 text-amber-300 text-[11px] font-bold">
                       {bike.condition}
@@ -610,7 +609,7 @@ export const InventoryView: React.FC = () => {
                         >
                           {bike.year} {bike.make} {bike.model}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-mono">{bike.engineCapacityCc}cc • {bike.category}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">Electric Bike</div>
                       </td>
 
                       <td className="py-2.5 px-3">

@@ -288,7 +288,7 @@ export const DashboardView: React.FC = () => {
 
                       <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-slate-300 font-medium">
                         <span className="bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 text-slate-300 text-[11px] font-mono">
-                          {bike.engineCapacityCc} cc
+                          Electric
                         </span>
                         <span className="bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 text-amber-300 text-[11px] font-bold">
                           {bike.condition}
