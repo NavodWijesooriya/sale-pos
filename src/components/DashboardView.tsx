@@ -57,10 +57,6 @@ export const DashboardView: React.FC = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
                 Dealership Operations Active (LKR)
               </span>
-              <span className="text-slate-400 text-xs hidden sm:inline" aria-hidden="true">•</span>
-              <span className="text-slate-300 text-xs">
-                Finance Commission: <strong className="text-amber-400"></strong>
-              </span>
             </div>
             
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">

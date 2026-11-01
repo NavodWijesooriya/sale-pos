@@ -7,7 +7,6 @@ import {
   SaleRecord, 
   OtherCostItem, 
   AuthUser,
-  SavedCommissionCalculation,
   isSupportedBike,
 } from '../types';
 import { sampleBikes, initialDealershipSettings } from '../data/initialData';
@@ -34,8 +33,8 @@ interface DealershipContextType {
   summary: FinancialSummary;
   isBusinessDataLoading: boolean;
   businessDataError: string | null;
-  activeTab: 'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings' | 'commission';
-  setActiveTab: (tab: 'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings' | 'commission') => void;
+  activeTab: 'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings';
+  setActiveTab: (tab: 'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings') => void;
   
   // Modals & Active selections
   selectedBike: Bike | null;
@@ -82,12 +81,6 @@ interface DealershipContextType {
   openEditModalForBike: (bike: Bike) => void;
   openInvoiceForSale: (sale: SaleRecord) => void;
 
-  // Finance Commission Calculations (Saved in Firestore)
-  financeCommissionCalculations: SavedCommissionCalculation[];
-  isFinanceCalculationsLoading: boolean;
-  saveFinanceCommissionCalculation: (calc: Omit<SavedCommissionCalculation, 'id' | 'createdAt' | 'ownerUid'>) => Promise<string>;
-  deleteFinanceCommissionCalculation: (id: string) => Promise<void>;
-  clearFinanceCommissionCalculations: () => Promise<void>;
 }
 
 const DealershipContext = createContext<DealershipContextType | undefined>(undefined);
@@ -109,10 +102,7 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
   const [isBusinessDataLoading, setIsBusinessDataLoading] = useState(true);
   const [businessDataError, setBusinessDataError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings' | 'commission'>('dashboard');
-  
-  const [financeCommissionCalculations, setFinanceCommissionCalculations] = useState<SavedCommissionCalculation[]>([]);
-  const [isFinanceCalculationsLoading, setIsFinanceCalculationsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'sales' | 'summary' | 'calculator' | 'settings'>('dashboard');
   
   const [selectedBike, setSelectedBike] = useState<Bike | null>(null);
   const [selectedSaleRecord, setSelectedSaleRecord] = useState<SaleRecord | null>(null);
@@ -206,23 +196,6 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
         showToast('Settings Could Not Load', 'Check your connection and Firestore security rules.', 'error');
         settingsLoaded = true;
         finishLoading();
-      }
-    );
-    const calcsCollection = collection(db, 'users', user.uid, 'financeCommissionCalculations');
-    const unsubscribeCalculations = onSnapshot(
-      calcsCollection,
-      (snapshot) => {
-        const records = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        })) as SavedCommissionCalculation[];
-        records.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        setFinanceCommissionCalculations(records);
-        setIsFinanceCalculationsLoading(false);
-      },
-      (error) => {
-        console.error('Failed to load finance calculations from Firestore', error);
-        setIsFinanceCalculationsLoading(false);
       }
     );
     void (async () => {
@@ -362,7 +335,6 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
     return () => {
       unsubscribeBikes();
       unsubscribeSettings();
-      unsubscribeCalculations();
     };
   }, [user?.uid, Boolean(profile?.businessName.trim())]);
 
@@ -890,41 +862,6 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
     showToast('Expense Removed', 'Total cost and profit margin adjusted.', 'info');
   };
 
-  const saveFinanceCommissionCalculation = async (
-    calcData: Omit<SavedCommissionCalculation, 'id' | 'createdAt' | 'ownerUid'>
-  ): Promise<string> => {
-    if (!user) throw new Error('You must be signed in to save finance commission calculations.');
-    const colRef = collection(db, 'users', user.uid, 'financeCommissionCalculations');
-    const newDocRef = doc(colRef);
-    const docData: SavedCommissionCalculation = {
-      ...calcData,
-      id: newDocRef.id,
-      ownerUid: user.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      timestamp: Date.now()
-    };
-    await setDoc(newDocRef, docData);
-    showToast('Calculation Saved', 'Saved to your Firestore account', 'success');
-    return newDocRef.id;
-  };
-
-  const deleteFinanceCommissionCalculation = async (id: string): Promise<void> => {
-    if (!user) throw new Error('You must be signed in to delete calculations.');
-    await deleteDoc(doc(db, 'users', user.uid, 'financeCommissionCalculations', id));
-    showToast('Record Deleted', 'Calculation record removed from Firestore', 'info');
-  };
-
-  const clearFinanceCommissionCalculations = async (): Promise<void> => {
-    if (!user) throw new Error('You must be signed in to clear calculations.');
-    const colRef = collection(db, 'users', user.uid, 'financeCommissionCalculations');
-    const snap = await getDocs(colRef);
-    const batch = writeBatch(db);
-    snap.docs.forEach((d) => batch.delete(d.ref));
-    await batch.commit();
-    showToast('History Cleared', 'All calculation records removed from Firestore', 'info');
-  };
-
   const updateSettings = async (updates: Partial<DealershipSettings>) => {
     const nextSettings = { ...settings, ...updates };
     if (updates.dealershipName?.trim() && updates.dealershipName.trim() !== profile?.businessName) {
@@ -1104,12 +1041,7 @@ export const DealershipProvider: React.FC<{ children: ReactNode }> = ({ children
         openSaleModalForBike,
         openDetailModalForBike,
         openEditModalForBike,
-        openInvoiceForSale,
-        financeCommissionCalculations,
-        isFinanceCalculationsLoading,
-        saveFinanceCommissionCalculation,
-        deleteFinanceCommissionCalculation,
-        clearFinanceCommissionCalculations
+        openInvoiceForSale
       }}
     >
       {children}

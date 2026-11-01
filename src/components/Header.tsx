@@ -15,8 +15,7 @@ import {
   User,
   LogOut,
   Menu,
-  X,
-  Calculator
+  X
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -40,7 +39,6 @@ export const Header: React.FC = () => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'inventory', label: 'Vehicles Inventory', icon: Warehouse, count: summary.totalBikesInStock },
     { id: 'sales', label: 'Sales & Commissions', icon: ReceiptText, count: summary.totalBikesSold },
-    { id: 'commission', label: 'Finance Commission', icon: Calculator },
     { id: 'summary', label: 'Summary', icon: BarChart3 },
   ];
 
@@ -241,22 +239,7 @@ export const Header: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                onClick={() => {
-                  setActiveTab('commission');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`flex items-center justify-center gap-2 p-3 min-h-[44px] rounded-xl text-xs font-bold border transition-colors ${
-                  activeTab === 'commission'
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    : 'bg-slate-900 text-slate-200 border-slate-800 hover:bg-slate-800'
-                }`}
-              >
-                <Calculator className="w-4 h-4 text-amber-400" aria-hidden="true" />
-                <span>Commission Calc</span>
-              </button>
-
+            <div className="pt-1">
               <button
                 onClick={() => {
                   setActiveTab('settings');
